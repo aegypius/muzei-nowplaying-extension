@@ -1,10 +1,15 @@
 package com.aegypius.muzei.nowplaying
 
+import android.graphics.BitmapFactory
 import com.aegypius.muzei.nowplaying.domain.AlbumKey
+import com.aegypius.muzei.nowplaying.domain.ArtworkSize
 import com.aegypius.muzei.nowplaying.domain.PublishArtistFallback
 import com.aegypius.muzei.nowplaying.domain.RestoreLastAlbum
 import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.MuzeiArtProvider
+import java.io.ByteArrayInputStream
+import java.io.IOException
+import java.io.InputStream
 
 /**
  * Exposes the album currently playing to Muzei.
@@ -53,6 +58,35 @@ class NowPlayingArtProvider : MuzeiArtProvider() {
                 setArtwork(artworkFor(fallbackKey, artworkUrl))
             },
         ).after(failedUrl = failedUrl, key = key)
+    }
+
+    /**
+     * Rejects an image too small to be a wallpaper, so the artist fallback gets a
+     * chance at it.
+     *
+     * super.openFile still performs the fetch, so no HTTP client lives here — that
+     * remains the API's job, per ADR-0001. The bytes are buffered only to read their
+     * bounds, which BitmapFactory does without allocating the image.
+     *
+     * Throwing IOException is what feeds the existing recovery: the API retries, then
+     * calls onInvalidArtwork, which publishes the artist fallback. It terminates,
+     * because the fallback has nothing left to fall back to.
+     */
+    override fun openFile(artwork: Artwork): InputStream {
+        val bytes = super.openFile(artwork).use { it.readBytes() }
+
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+
+        if (!ArtworkSize.isUsable(bounds.outWidth, bounds.outHeight)) {
+            // Also covers bytes that are not an image at all: BitmapFactory reports
+            // -1 for both dimensions when it cannot decode them.
+            throw IOException(
+                "artwork ${bounds.outWidth}x${bounds.outHeight} is too small to use",
+            )
+        }
+
+        return ByteArrayInputStream(bytes)
     }
 
     private companion object {
