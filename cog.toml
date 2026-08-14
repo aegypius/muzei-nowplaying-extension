@@ -14,12 +14,11 @@ ignore_merge_commits = true
 # the build reads a static file and needs neither git nor cocogitto inside the
 # container.
 #
-# Deliberately a targeted substitution rather than rewriting the file: the
-# codeEpoch constant and the comment block explaining it must survive, and only
-# the `name` line is generated output.
-pre_bump_hooks = [
-  "sed -i 's/^name = .*/name = {{version}}/' version.properties",
-]
+# A targeted substitution rather than rewriting the file: the codeEpoch constant and
+# the comment block explaining it must survive, and only the `name` line is generated
+# output. The substitution itself lives in the justfile, which also makes a bump work
+# from a subdirectory -- an inline sed was measured failing there.
+pre_bump_hooks = ["just _set-version {{version}}"]
 
 [changelog]
 path = "CHANGELOG.md"

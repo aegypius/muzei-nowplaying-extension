@@ -145,6 +145,18 @@ keystore:
 # from the bumped file. `&&` post-dependencies give exactly that sequence, and a
 # failed bump skips the build rather than shipping a mislabelled artifact.
 
+# Called by cocogitto's pre-bump hook, never by hand: this line is generated output,
+# and ADR-0005 explains why editing it is editing build output. Private so that
+# `just --list` does not advertise a way to do the one thing the docs forbid.
+#
+# In the justfile rather than inline in cog.toml for a concrete reason, not only
+# convention: just runs recipes from the justfile's directory, so a bump works from a
+# subdirectory. The raw sed was measured failing there with "can't read
+# version.properties", aborting the bump.
+[private]
+_set-version version:
+    sed -i 's/^name = .*/name = {{version}}/' version.properties
+
 # Cut a release: test, bump the version and changelog, then build.
 release: test && build
     cog bump --auto
