@@ -15,21 +15,28 @@ already handed looks wrong on first reading. This ADR records why.
 ## Decision Drivers
 
 * Muzei runs in a separate process and cannot read our files without help.
-* Muzei already downloads and caches whatever it is pointed at.
+* The muzei-api already implements fetching and caching for a remote URI, so
+  pointing at one costs no networking code.
 * The original extension shipped a local-artwork path and then deleted it.
 
 ## Considered Options
 
-* **Remote lookup by album key** — publish an HTTPS URL and let Muzei fetch it.
+* **Remote lookup by album key** — publish an HTTPS URL and let the API fetch it.
 * **Session art first, remote fallback** — cache the session bitmap and serve it.
 * **Local library lookup** — resolve the track in MediaStore and read its cover.
 
 ## Decision Outcome
 
 Chosen: **remote lookup by album key**. The artwork URL is built from album artist
-and album and published as the artwork's persistent URI; Muzei performs the
-fetch, the caching and the retries. This project writes no HTTP client, opens no
-files and requests no storage permission.
+and album and published as the artwork's persistent URI, and the API's default
+`openFile()` implementation does the rest: fetching, caching and retrying. This
+project writes no HTTP client, opens no files and requests no storage permission.
+
+Worth being precise about where that happens, because it is natural to assume
+Muzei does the downloading. It does not. Muzei calls `openFile` on *this* app's
+ContentProvider, so the HTTP request runs in this process and the bytes are cached
+in this app's data directory. Hence the `INTERNET` permission in the manifest —
+which is also why the original extension declared it.
 
 The local library lookup was version 2.0's design. It matched the track in
 MediaStore, read `ALBUM_ART`, fell back to a regex folder search, and wrapped the

@@ -1,8 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-  <!-- Components arrive with their own tickets: the art provider (34fd4c), the
-       notification listener service (a4e011), and the setup and settings
-       activities (05dc26, 4f10dc). -->
+  <!-- The provider downloads the artwork itself: Muzei calls openFile on this
+       ContentProvider, and the muzei-api default implementation opens the
+       persistent URI from within this process. Muzei does not fetch it. -->
+  <uses-permission android:name="android.permission.INTERNET" />
+
+  <application android:label="@string/app_name">
+
+    <!-- Muzei discovers art providers through the manifest; there is no
+         registration call. The permission restricts access to Muzei, and the
+         intent-filter action is what makes it discoverable at all. The authority
+         is not duplicated in code: MuzeiArtProvider reads it from here.
+
+         setupActivity and settingsActivity meta-data are optional and omitted
+         deliberately: pointing either at a component that does not exist breaks
+         Muzei's launch, so 05dc26 and 4f10dc add them with their screens. -->
+    <provider
+      android:name=".NowPlayingArtProvider"
+      android:authorities="com.aegypius.muzei.nowplaying"
+      android:description="@string/provider_description"
+      android:exported="true"
+      android:label="@string/provider_label"
+      android:permission="com.google.android.apps.muzei.api.ACCESS_PROVIDER">
+      <intent-filter>
+        <action android:name="com.google.android.apps.muzei.api.MuzeiArtProvider" />
+      </intent-filter>
+    </provider>
+
+  </application>
 
 </manifest>

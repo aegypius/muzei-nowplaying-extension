@@ -94,8 +94,12 @@ ProviderContract.getProviderClient(context, authority)
     .setArtwork(Artwork.Builder().token(...).title(...).byline(...).persistentUri(...).build())
 ```
 
-`persistentUri` may be remote — Muzei downloads and caches it, so an extension
-never needs storage permissions. Muzei calls `onLoadRequested(initial)` when it
+`persistentUri` may be remote, and the API's default `openFile()` fetches and
+caches it, so an extension needs no storage permission and no HTTP client. Note
+where that runs: Muzei calls `openFile` on *your* provider, so the request is made
+by your process and the bytes land in your app's data directory — which is why the
+`INTERNET` permission is required. See
+[ADR-0001](./docs/adr/0001-remote-only-artwork.md). Muzei calls `onLoadRequested(initial)` when it
 wants more artwork; that is the only callback a provider must implement.
 
 Both halves in context: `MuzeiMusicExtension/extension/src/main/AndroidManifest.xml`

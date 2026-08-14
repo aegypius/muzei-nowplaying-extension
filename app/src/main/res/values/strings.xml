@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">Now Playing</string>
+  <string name="provider_label">Now Playing</string>
+  <string name="provider_description">The cover of whatever you are listening to.</string>
+</resources>
