@@ -1,6 +1,6 @@
 # Fast, host-native quality gates. Nothing here starts a container: `just check`
 # owns compilation and tests, where a minute is acceptable, whereas a commit hook
-# has to stay unnoticeable. The whole pre-commit run finishes in ~0.02s.
+# has to stay unnoticeable. The whole pre-commit run finishes in well under 0.1s.
 #
 # Install with `lefthook install`, once per clone.
 #
@@ -8,6 +8,12 @@
 # <hook>.old. That silently displaces cocogitto's commit-msg hook, so the
 # conventional-commit check is declared here and cog.toml deliberately declares
 # no [git_hooks] at all. One installer, one file.
+#
+# EVERY JOB MUST SURVIVE AN EMPTY FILE LIST. `lefthook run -f pre-commit` forces
+# jobs to run regardless of whether any file matches their glob, so
+# {staged_files} can expand to nothing. Left unguarded, grep with no file
+# arguments reads stdin and hangs the hook, and a job that reports a problem
+# unconditionally fails on a clean tree.
 #
 # Shell snippets use ''' literal strings so nothing needs escaping.
 
@@ -23,10 +29,12 @@ run = 'cog verify --file {1}'
 [pre-commit]
 parallel = true
 
+# /dev/null is appended to every grep so the file list is never empty: grep with
+# no file arguments would otherwise read stdin and hang.
 [[pre-commit.jobs]]
 name = "merge-conflict-markers"
 run = '''
-if grep -InE '^(<<<<<<< |>>>>>>> )' {staged_files}; then
+if grep -InE '^(<<<<<<< |>>>>>>> )' {staged_files} /dev/null; then
   echo "conflict markers above"
   exit 1
 fi
@@ -38,7 +46,7 @@ fi
 name = "trailing-whitespace"
 exclude = ["*.md", "gradlew", "LICENSE"]
 run = '''
-if grep -InE ' +$' {staged_files}; then
+if grep -InE ' +$' {staged_files} /dev/null; then
   echo "trailing whitespace above"
   exit 1
 fi
@@ -63,15 +71,6 @@ run = '''
 python3 -c "import tomllib,sys;[tomllib.load(open(f,'rb')) for f in sys.argv[1:]]" {staged_files}
 '''
 
-# hadolint is installed on the host, so this stays container-free like every
-# other job here. Rule suppressions live as `# hadolint ignore=` comments in the
-# Containerfile itself rather than in a .hadolint.yaml, which keeps the repo free
-# of YAML.
-[[pre-commit.jobs]]
-name = "hadolint"
-glob = "Containerfile"
-run = 'hadolint {staged_files}'
-
 [[pre-commit.jobs]]
 name = "xml-parses"
 glob = "*.xml"
@@ -79,12 +78,33 @@ run = '''
 python3 -c "import xml.etree.ElementTree as ET,sys;[ET.parse(f) for f in sys.argv[1:]]" {staged_files}
 '''
 
+# hadolint is installed on the host, so this stays container-free like every
+# other job here. Rule suppressions live as `# hadolint ignore=` comments in the
+# Containerfile itself rather than in a .hadolint.yaml, which keeps the repo free
+# of YAML.
+#
+# hadolint exits non-zero on no arguments, so the empty case exits early.
+[[pre-commit.jobs]]
+name = "hadolint"
+glob = "Containerfile"
+run = '''
+set -- {staged_files}
+if [ "$#" -eq 0 ]; then exit 0; fi
+hadolint "$@"
+'''
+
 # .gitignore already excludes these, but `git add -f` bypasses it, and losing the
 # signing key means every install starts over. See ADR-0004.
+#
+# The glob decides when this matters, but the emptiness check is what keeps a
+# forced run from failing on a clean tree.
 [[pre-commit.jobs]]
 name = "no-signing-material"
 glob = ["*.jks", "*.keystore", "keystore.properties"]
 run = '''
-echo "refusing to commit signing material: {staged_files}"
-exit 1
+set -- {staged_files}
+if [ "$#" -gt 0 ]; then
+  echo "refusing to commit signing material: $*"
+  exit 1
+fi
 '''
