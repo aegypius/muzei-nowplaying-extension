@@ -15,12 +15,20 @@ import kotlin.random.Random
  */
 object SampleAlbums {
 
+    // Chosen by the person whose wallpaper this is. The only technical requirement
+    // is that the artwork service actually has them: each was verified to return an
+    // album cover for the exact URL this app builds, apostrophe encoding included.
+    //
+    // Note that a 200 does not by itself mean a good cover. A misspelled album title
+    // was measured returning a 5 kB image where the correct one returns 67 kB, and
+    // nothing in the app can tell those apart, since only a non-2xx triggers the
+    // artist fallback. So spellings here are canonical, not casual.
     val all: List<AlbumKey> = listOf(
-        albumKey("Radiohead", "In Rainbows"),
-        albumKey("Portishead", "Dummy"),
+        albumKey("Guns N' Roses", "Appetite for Destruction"),
+        albumKey("Carpenter Brut", "Trilogy"),
+        albumKey("Amenra", "Mass VI"),
         albumKey("Massive Attack", "Mezzanine"),
         albumKey("Pink Floyd", "The Dark Side of the Moon"),
-        albumKey("Daft Punk", "Discovery"),
     )
 
     fun random(random: Random = Random.Default): AlbumKey = all.random(random)
