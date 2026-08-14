@@ -40,9 +40,14 @@ An F-Droid repo gives exact update detection and a real manifest, but needs
 `fdroidserver` in the build image and a separately signed index — more machinery
 than a filename convention earns here.
 
-There is no debug build type. Since any build may be served, every build must be
-installable over what the phone already has, which means the release signature.
-The keystore is required to assemble, though not to run tests.
+Anything placed in the served directory is release-signed. AGP always provides a
+`debug` build type and it cannot be removed, so debug builds do exist and are
+useful for one-off manual installs — but they are never served, because their
+signature is not stable: the debug keystore is regenerated per container build,
+and Obtainium updates in place only while the signature is unchanged.
+
+The release keystore is therefore required to produce anything installable
+through this route, though not to run tests.
 
 ## Consequences
 
