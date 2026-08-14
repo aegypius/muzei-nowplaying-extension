@@ -1,0 +1,33 @@
+# Upstream clones kept beside this project as read-only reference.
+# See AGENTS.md — read them, never paste from them, never commit them.
+muzei/
+MuzeiMusicExtension/
+
+# Signing. The release key must never be committed; see keystore.properties.example.
+keystore.properties
+*.jks
+*.keystore
+
+# Served builds. Every build lands here signed, so this fills up fast.
+dist/
+
+# Local machine configuration
+local.properties
+.claude/settings.local.json
+.parsec/
+
+# Gradle and Android build output
+.gradle/
+build/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
