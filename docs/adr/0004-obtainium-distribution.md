@@ -62,6 +62,13 @@ through this route, though not to run tests.
   Pruning uses the same ordering Obtainium uses to pick the latest, so it can never
   delete the build the phone would be offered.
 
+## Confirmed
+
+Install and in-place update both verified on hardware. An update exercises the
+whole scheme at once: it would have failed had the signature not been stable, had
+versionCode not increased, had the filename not carried the version where the
+regex reads it, or had link sorting not picked the newest build.
+
 ## Notes on the mechanism
 
 These were established by reading Obtainium's source, and they contradict what is
