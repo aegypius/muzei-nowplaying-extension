@@ -100,6 +100,30 @@ if [ "$#" -eq 0 ]; then exit 0; fi
 hadolint "$@"
 '''
 
+# Raising codeEpoch lowers every future versionCode, and Android then refuses the
+# install as a downgrade — silently, recoverable only by uninstalling. The build's
+# own require() catches only an epoch beyond now; raising it by a day or a year
+# passes unnoticed, so the real gate is here. See ADR-0005.
+#
+# Compares the staged blob, not the working tree, since that is what gets committed.
+[[pre-commit.jobs]]
+name = "code-epoch-not-raised"
+glob = "version.properties"
+run = '''
+set -- {staged_files}
+if [ "$#" -eq 0 ]; then exit 0; fi
+epoch() { sed -n 's/^codeEpoch[[:space:]]*=[[:space:]]*//p' | head -1; }
+was=$(git show HEAD:version.properties 2>/dev/null | epoch)
+now=$(git show :version.properties | epoch)
+# Only an increase is refused. ADR-0005 states lowering is harmless, and comparing
+# numerically rather than textually means reformatting the line is not a failure.
+if [ -n "$was" ] && [ -n "$now" ] && [ "$now" -gt "$was" ] 2>/dev/null; then
+  echo "codeEpoch was raised, from $was to $now."
+  echo "That lowers every future versionCode; Android then refuses the install. See ADR-0005."
+  exit 1
+fi
+'''
+
 # .gitignore already excludes these, but `git add -f` bypasses it, and losing the
 # signing key means every install starts over. See ADR-0004.
 #
