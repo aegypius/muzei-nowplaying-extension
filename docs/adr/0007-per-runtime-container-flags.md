@@ -59,6 +59,15 @@ in and artifacts out is uniform and needs no flags at all, but Gradle writes
 costing incremental builds and the whole dev loop. Running as root then chowning
 needs elevated privileges under docker, mid-loop.
 
+## Confirmed
+
+Verified under both runtimes, not only the one this was written on. Under docker via
+the justfile: the image builds, the full test suite passes, a signed release APK is
+produced with the same certificate as podman builds, and everything docker wrote is
+owned 1000:1000 rather than by root. The `--user` branch of the conditional therefore
+does what the measurements predicted, including through the read-only keystore mount
+and the environment pass-through.
+
 ## Consequences
 
 * Good, because either runtime produces output you own.
