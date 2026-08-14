@@ -49,6 +49,17 @@ A bundled image was rejected only because it proves nothing about the pipeline; 
 otherwise the more honest option, and remains the fallback if the sample proves
 confusing in practice.
 
+## Confirmed
+
+Verified on a clean install: uninstalling and re-enabling the extension asked for
+notification access, then published a sample album — The Dark Side of the Moon — which
+rendered as the wallpaper.
+
+That is the diagnostic value this decision was chosen for, actually paying out: a
+device that had never run the app proved the whole path, from album key through URL
+and fetch to a rendered wallpaper, before any music played. A bundled image would have
+shown something equally quickly and proved none of it.
+
 ## Consequences
 
 * Good, because a fresh install shows something immediately and proves the machinery.
