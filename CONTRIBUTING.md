@@ -37,7 +37,7 @@ free. After the fact it means rewriting history.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/). The
 `commit-msg` hook runs `cog verify`; do not install cocogitto's own hook, because
-`lefthook install` would rename it away. `lefthook.yml` is the single place hooks
+`lefthook install` would rename it away. `lefthook.toml` is the single place hooks
 are declared.
 
 The `pre-commit` hook only runs checks that finish in well under a second —
