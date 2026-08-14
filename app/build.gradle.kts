@@ -77,6 +77,9 @@ tasks.withType<Test>().configureEach {
  * including `just test`, which must not require the key. The release packaging task
  * is failed instead, further down.
  */
+/** The alias `just keystore` creates, so neither source has to state it. */
+val DEFAULT_KEY_ALIAS = "nowplaying"
+
 class SigningMaterial(
     val storeFile: File,
     val alias: String,
@@ -89,6 +92,27 @@ class SigningMaterial(
 val signingMaterial: SigningMaterial? = run {
     val keystorePath = providers.environmentVariable("NOWPLAYING_KEYSTORE").orNull
         ?: return@run null
+
+    fun env(name: String): String? =
+        providers.environmentVariable(name).orNull?.trim()?.takeIf { it.isNotEmpty() }
+
+    // The environment comes first, so the password can be held in a password
+    // manager and handed over per build without ever being written into the work
+    // tree. The justfile forwards these by name, so the value is not in the
+    // container command line either.
+    //
+    // Note: with Gradle's configuration cache enabled the resolved value would be
+    // written into the cache entry on disk. That is one more reason it stays off.
+    env("NOWPLAYING_KEYSTORE_PASSWORD")?.let { password ->
+        return@run SigningMaterial(
+            storeFile = File(keystorePath),
+            alias = env("NOWPLAYING_KEYSTORE_ALIAS") ?: DEFAULT_KEY_ALIAS,
+            password = password,
+        )
+    }
+
+    // Otherwise a gitignored keystore.properties, which is the simpler setup for
+    // anyone not using a password manager.
     val propertiesFile = rootProject.file("keystore.properties")
     if (!propertiesFile.exists()) return@run null
 
@@ -98,7 +122,7 @@ val signingMaterial: SigningMaterial? = run {
 
     SigningMaterial(
         storeFile = File(keystorePath),
-        alias = value("alias") ?: return@run null,
+        alias = value("alias") ?: DEFAULT_KEY_ALIAS,
         password = value("storePass") ?: return@run null,
     )
 }
@@ -162,8 +186,10 @@ if (signingMaterial == null) {
             error(
                 "release signing material is incomplete. `just keystore` creates the " +
                     "key; keystore.properties must then set `alias` and `storePass` " +
-                    "(see keystore.properties.example). NOWPLAYING_KEYSTORE must point " +
-                    "at the key, which `just build` arranges.",
+                    "(see keystore.properties.example), or NOWPLAYING_KEYSTORE_PASSWORD " +
+                    "must be set -- see the Signing section of CONTRIBUTING.md. " +
+                    "NOWPLAYING_KEYSTORE must point at the key, which `just build` " +
+                    "arranges.",
             )
         }
     }

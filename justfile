@@ -23,11 +23,16 @@ keystore := env(
 )
 keystore_in_container := "/keystore.jks"
 
+# NOWPLAYING_KEYSTORE_PASSWORD and _ALIAS are forwarded by name rather than by
+# value, so a password taken from a password manager never appears in the
+# container's command line where `ps` would show it to anyone on the machine.
+
 # How many builds dist/ keeps. More than one so there is a rollback target.
 dist_keep := "5"
 keystore_mount := if path_exists(keystore) == "true" {
     "-v " + keystore + ":" + keystore_in_container + ":ro" +
-    " -e NOWPLAYING_KEYSTORE=" + keystore_in_container
+    " -e NOWPLAYING_KEYSTORE=" + keystore_in_container +
+    " -e NOWPLAYING_KEYSTORE_PASSWORD -e NOWPLAYING_KEYSTORE_ALIAS"
 } else {
     ""
 }

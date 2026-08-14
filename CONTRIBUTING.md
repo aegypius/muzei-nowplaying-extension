@@ -60,9 +60,25 @@ cannot be installed, so producing one would only waste a build. `just build` fai
 at packaging with a message naming what is missing.
 
 `just keystore` creates the key at `~/.config/nowplaying/release.jks`, prompting
-for the passwords so they are never written down by anything but you. It refuses to
-overwrite an existing key. Copy the alias and passwords into `keystore.properties`,
-which is gitignored and which a pre-commit hook refuses to accept.
+for the password so it is never written down by anything but you. It refuses to
+overwrite an existing key.
+
+The password reaches the build one of two ways, and the build prefers the first:
+
+- **`NOWPLAYING_KEYSTORE_PASSWORD` in the environment.** Nothing is written to disk.
+  This is the path CI uses, injecting the secret from wherever it keeps them; how
+  you populate it locally is your business and no concern of this repository.
+- **`keystore.properties`**, gitignored and refused by a pre-commit hook. Simpler,
+  at the cost of a plaintext password in the work tree.
+
+`NOWPLAYING_KEYSTORE_ALIAS` overrides the alias, which otherwise defaults to
+`nowplaying` — what `just keystore` creates. The justfile forwards both variables
+into the container by name rather than by value, so a password never appears in a
+command line where `ps` would show it.
+
+A caveat if Gradle's configuration cache is ever enabled: the resolved password
+would be written into the cache entry on disk, putting the plaintext back somewhere
+less obvious than a properties file.
 
 The key lives outside the work tree so no `git add` can reach it, and the justfile
 bind-mounts it read-only into the build container. Override the location with
