@@ -40,6 +40,12 @@ Compose was rejected as disproportionate: it would add the compiler and runtime 
 two screens, and there is no first-party Compose preference library, so the switch
 rows would be hand-built regardless — the very work this decision avoids.
 
+## Confirmed
+
+Verified on the device: the settings screen opens from Muzei's provider list and the
+switch behaves. The reason for this ADR — that the screens should look like one
+application — held up in practice.
+
 ## The gate's scope
 
 The setting refuses publishing for music you play, and does not refuse Muzei's own
