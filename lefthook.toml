@@ -1,4 +1,4 @@
-# Fast, host-native quality gates. Nothing here starts a container: `just check`
+# Fast, host-native quality gates. Nothing here starts a container: `just test`
 # owns compilation and tests, where a minute is acceptable, whereas a commit hook
 # has to stay unnoticeable. The whole pre-commit run finishes in well under 0.1s.
 #

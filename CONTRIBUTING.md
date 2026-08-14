@@ -43,7 +43,7 @@ are declared.
 The `pre-commit` hook only runs checks that finish in well under a second —
 conflict markers, trailing whitespace, final newlines, TOML and XML parsing, and
 a refusal to commit signing material. Compilation and tests are deliberately not
-there: `just check` owns those, where taking a minute is acceptable.
+there: `just test` owns those, where taking a minute is acceptable.
 
 This is not decoration. `cog` derives the next semantic version from commit types
 and generates `CHANGELOG.md` from them, so a lazily-typed message is a lost

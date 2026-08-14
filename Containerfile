@@ -2,7 +2,7 @@
 # docker.
 #
 # Two targets:
-#   toolchain  JDK + Android SDK. Runs `just check` and `just build`. Default.
+#   toolchain  JDK + Android SDK. Runs `just test` and `just build`. Default.
 #   serve      static HTTP server exposing dist/ for Obtainium.
 #
 # There is deliberately no separate test target: tests are JVM-only, but AGP
