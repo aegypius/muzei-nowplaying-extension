@@ -58,15 +58,16 @@ _run +args:
 # both are gitignored. Gradle reports UP-TO-DATE and runs nothing when no source
 # changed, so a green run does not always mean tests executed.
 
-# Run the tests.
-test: (_run "./gradlew" "--console=plain" "test")
+# A filtered run is scoped to :domain because --tests fails a module that has no
+# matching tests, and :app has none at all yet. An unfiltered run must therefore
+# not pass --tests at all, which is why the whole tail is conditional.
+#
+# quote() is required: a method pattern contains spaces, which the shell would
+# otherwise split into separate arguments.
 
-# Scoped to :domain because --tests fails a module that has no matching tests,
-# and :app has none at all yet. quote() is required: a method pattern contains
-# spaces, which the shell would otherwise split into separate arguments.
-
-# Run only tests matching a pattern, e.g. just test-only '*AlbumKeyTest*'
-test-only pattern: (_run "./gradlew" "--console=plain" ":domain:test" "--tests" quote(pattern))
+# Run the tests, optionally filtered, e.g. just test '*AlbumKeyTest*'
+test pattern="": (_run "./gradlew" "--console=plain" \
+    (if pattern == "" { "test" } else { ":domain:test --tests " + quote(pattern) }))
 
 # Neither the signing config nor the versioned copy into dist/ is wired up yet,
 # so this cannot produce something installable.
