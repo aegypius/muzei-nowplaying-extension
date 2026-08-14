@@ -22,6 +22,9 @@ keystore := env(
     home_directory() / ".config/nowplaying/release.jks",
 )
 keystore_in_container := "/keystore.jks"
+
+# How many builds dist/ keeps. More than one so there is a rollback target.
+dist_keep := "5"
 keystore_mount := if path_exists(keystore) == "true" {
     "-v " + keystore + ":" + keystore_in_container + ":ro" +
     " -e NOWPLAYING_KEYSTORE=" + keystore_in_container
@@ -86,10 +89,14 @@ test pattern="": (_run "" "./gradlew" "--console=plain" \
     (if pattern == "" { "test" } else { ":domain:test --tests " + quote(pattern) }))
 
 # Release-signed, so it needs the key: see the Signing section of CONTRIBUTING.md.
-# Copying the result into dist/ under its versioned name is still to come (a1c076).
+#
+# Two steps, in order: assemble, then name and prune. The naming lives in
+# tools/dist.sh because it has to run inside the container, where aapt2 is, and
+# because the version is read back out of the APK rather than recomputed.
 
-# Assemble a release APK.
-build: (_run keystore_mount "./gradlew" "--console=plain" "assembleRelease")
+# Assemble a release APK into dist/.
+build: (_run keystore_mount "./gradlew" "--console=plain" "assembleRelease") \
+    (_run "" "sh" "tools/dist.sh" dist_keep)
 
 # No --user here: /srv is mounted read-only and nothing is written to the host,
 # so the ownership problem in ADR-0007 does not arise. The caddy stage is also a

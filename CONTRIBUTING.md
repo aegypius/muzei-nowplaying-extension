@@ -88,7 +88,9 @@ already, so a bump only records that the semantic version moved. Building and
 serving are separate recipes.
 
 To get a build onto a phone: build, then serve the output directory, then let
-Obtainium pull from it. The served directory is pruned to the last few builds so
+Obtainium pull from it. The server publishes on all interfaces, but a host firewall
+can still block it — if the phone cannot reach the port, check that before
+suspecting Obtainium. The served directory is pruned to the last few builds so
 there is always a rollback target.
 
 ## Decisions

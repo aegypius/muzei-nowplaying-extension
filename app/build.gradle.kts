@@ -119,10 +119,9 @@ android {
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         // Both halves describe the same instant, so the manifest and Android's
-        // app info always agree. Carrying the same string into the APK filename
-        // is still to come: nothing sets outputFileName yet, so AGP emits
-        // app-release.apk. That is ticket a1c076, which ADR-0004's Obtainium
-        // version regex depends on.
+        // app info always agree. AGP still emits app-release.apk; tools/dist.sh
+        // reads this version back out of the built APK and copies it into dist/
+        // under that name, rather than recomputing it -- see ADR-0005.
         versionCode = computedVersionCode.toInt()
         versionName = "$semanticVersion-$computedVersionCode"
     }

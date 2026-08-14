@@ -57,9 +57,10 @@ through this route, though not to run tests.
 * Bad, because the app must be signed with a dedicated release keystore, kept
   outside the repository and backed up separately — losing it means uninstalling
   and reinstalling by hand.
-* Bad, because the served directory accumulates an APK per build. The release
-  recipe prunes to the most recent few, which bounds disk while leaving a rollback
-  target or two.
+* Bad, because the served directory accumulates an APK per build. The build prunes
+  to the most recent few, which bounds disk while leaving a rollback target or two.
+  Pruning uses the same ordering Obtainium uses to pick the latest, so it can never
+  delete the build the phone would be offered.
 
 ## Notes on the mechanism
 
