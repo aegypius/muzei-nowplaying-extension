@@ -27,10 +27,21 @@ The lookup happens once per album, not once per track.
 
 ## What the app can see but does not use
 
-Now Playing requires notification-listener access, which is a broad permission:
-Android grants it visibility of every notification, not only media ones. This app
-reads media session metadata — title, artist, album artist, album — and ignores
-everything else. The title is used for nothing today and is not transmitted.
+Now Playing requires notification-listener access, because that is the only route
+Android offers to media sessions. The permission is deliberately broad, and the
+system's grant screen says so: it warns that the app can read notifications, reply
+to messages and change settings. That wording is fixed by Android and generic to the
+permission — it is not derived from what this app does.
+
+What this app does with it:
+
+- It declines every notification type in its manifest
+  (`disabled_filter_types`), so it is never delivered a notification at all.
+- It does not implement the callbacks that would receive them, and contains no
+  call that could reply to a message, dismiss a notification, or change any
+  notification or Do Not Disturb setting. There is no such code path to invoke.
+- It reads media session metadata — title, artist, album artist, album — and
+  nothing else. The title is used for nothing today and is not transmitted.
 
 ## What is stored on the device
 

@@ -54,6 +54,19 @@
       <intent-filter>
         <action android:name="android.service.notification.NotificationListenerService" />
       </intent-filter>
+
+      <!-- Declines every notification type, so this listener is never delivered a
+           notification at all. Only media sessions are wanted, and those come from
+           MediaSessionManager rather than from notification delivery.
+
+           The grant screen's warning text is fixed by Android and will still say
+           this app can read notifications, reply to messages and change settings:
+           BIND_NOTIFICATION_LISTENER_SERVICE is all-or-nothing and the wording is
+           generic to the permission, not derived from what an app uses. This
+           narrows the actual capability, not the warning. -->
+      <meta-data
+        android:name="android.service.notification.disabled_filter_types"
+        android:value="conversations|alerting|silent|ongoing" />
     </service>
 
   </application>
