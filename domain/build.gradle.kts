@@ -21,6 +21,10 @@ kotlin {
 // compile error rather than a broken convention. Domain logic lives here so its
 // tests run on the JVM in under a second.
 dependencies {
+    // The publish path is a suspend function taking an injected dispatcher, so
+    // coroutines are needed in main and not only in tests.
+    implementation(libs.kotlinx.coroutines.core)
+
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.kotlinx.coroutines.test)

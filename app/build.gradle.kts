@@ -62,6 +62,10 @@ require(computedVersionCode <= Int.MAX_VALUE) {
     "elapsed seconds ($computedVersionCode) exceed the 32-bit versionCode range"
 }
 
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+}
+
 android {
     namespace = "com.aegypius.muzei.nowplaying"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -101,4 +105,10 @@ kotlin {
 dependencies {
     implementation(project(":domain"))
     implementation(libs.muzei.api)
+    implementation(libs.kotlinx.coroutines.android)
+
+    // Enough to assert our metadata key strings against the platform's own
+    // constants. Those are compile-time inlined, so this needs no Robolectric.
+    testImplementation(libs.kotlin.test.junit5)
+    testImplementation(libs.junit.jupiter)
 }

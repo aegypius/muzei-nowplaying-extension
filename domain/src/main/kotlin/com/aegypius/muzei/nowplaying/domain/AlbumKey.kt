@@ -18,12 +18,16 @@ data class AlbumKey internal constructor(
      * sharing a token would make Muzei skip the second as already published.
      */
     val token: String
-        get() = "${albumArtist.length}:$albumArtist:${album?.length ?: -1}:${album ?: ""}"
+        get() = "${albumArtist.length}:$albumArtist:${album?.length ?: ABSENT_ALBUM}:${album ?: ""}"
 
     /** The same key with the album dropped, which is what the artist fallback asks for. */
     fun withoutAlbum(): AlbumKey = copy(album = null)
 
     companion object {
+
+        /** Written as the album length when there is no album. */
+        private const val ABSENT_ALBUM = -1
+
         /**
          * Reduces a track to the identity of its artwork, or refuses.
          *
@@ -38,6 +42,46 @@ data class AlbumKey internal constructor(
                 ?: track.artist.orNullIfBlank()
                 ?: return null
             return AlbumKey(albumArtist = albumArtist, album = track.album.orNullIfBlank())
+        }
+
+        /**
+         * Rebuilds a key from its token.
+         *
+         * Muzei hands back only the token when it reports a failed artwork, so the
+         * artist fallback needs this to know which album failed. Returns null for
+         * anything this class did not write.
+         */
+        fun fromToken(token: String): AlbumKey? {
+            val artistLengthEnd = token.indexOf(':')
+            if (artistLengthEnd <= 0) return null
+            val artistLength = token.substring(0, artistLengthEnd).toIntOrNull() ?: return null
+            if (artistLength < 0) return null
+
+            val artistStart = artistLengthEnd + 1
+            val artistEnd = artistStart + artistLength
+            if (artistEnd >= token.length || token[artistEnd] != ':') return null
+
+            val albumLengthEnd = token.indexOf(':', artistEnd + 1)
+            if (albumLengthEnd < 0) return null
+            val albumLength = token
+                .substring(artistEnd + 1, albumLengthEnd)
+                .toIntOrNull()
+                ?: return null
+
+            val albumStart = albumLengthEnd + 1
+            val albumArtist = token.substring(artistStart, artistEnd)
+            return when {
+                // -1 is how an absent album is written; nothing may follow it.
+                albumLength == ABSENT_ALBUM ->
+                    if (albumStart == token.length) AlbumKey(albumArtist, null) else null
+                albumLength >= 0 ->
+                    if (albumStart + albumLength == token.length) {
+                        AlbumKey(albumArtist, token.substring(albumStart))
+                    } else {
+                        null
+                    }
+                else -> null
+            }
         }
 
         /**

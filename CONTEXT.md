@@ -18,7 +18,8 @@ _Avoid_: source, extension, plugin.
 **Winning session**:
 The media session that last began playing, and the only one permitted to change
 the wallpaper. Several sessions may be alive at once — a paused player, a
-podcast, a video — and exactly one of them wins.
+podcast, a video — and exactly one of them wins. A session is identified by its
+own handle, never by the app it belongs to: one app can own two at once.
 _Avoid_: active session, current session — several sessions are active at once,
 which is the whole reason the term exists.
 
