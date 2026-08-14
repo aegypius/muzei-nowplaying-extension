@@ -70,6 +70,11 @@ widely assumed about the setup:
 * Which APK is "latest" comes from sorting the page's links with
   `compareAlphaNumeric` and taking the last. The sort is natural, so `1.10.0`
   correctly outranks `1.9.0`.
+* That re-sorting is load-bearing, not a convenience. The server's own listing
+  order is *lexicographic* — caddy's autoindex was measured emitting `0.1.0`,
+  `0.10.0`, `0.2.0` in that order, whose last entry is the wrong build. Obtainium
+  reorders the links before choosing, which is what makes the scheme work, so its
+  link sorting must stay enabled in the app's source configuration.
 
 The accepted risk is in that last point: a build whose semver sorts lower than an
 existing one — a hotfix on an older line — would leave the phone offered the older
