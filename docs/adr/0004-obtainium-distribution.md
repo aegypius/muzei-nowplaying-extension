@@ -82,7 +82,18 @@ widely assumed about the setup:
   reorders the links before choosing, which is what makes the scheme work, so its
   link sorting must stay enabled in the app's source configuration.
 
-The accepted risk is in that last point: a build whose semver sorts lower than an
+* The **HTML source cannot be selected manually** — it is greyed out in the list.
+  It is hostless and does not set `neverAutoSelect` (`source_provider.dart`), so it
+  is the catch-all Obtainium falls back to once every host-matching source has
+  refused the URL. Paste the URL and let it resolve.
+* **The URL must contain a dot.** `preStandardizeUrl` throws `UnsupportedURLError`
+  unless the URL contains a `.` that is not its last character, or is a bracketed
+  IPv6 literal. So `http://localhost:8080/` and a bare hostname are rejected before
+  any source is consulted; a dotted IP works. The same function silently prepends
+  `https://` when no scheme is given, which will never reach a plain-HTTP server.
+* Cleartext HTTP is fine: Obtainium's manifest sets `usesCleartextTraffic="true"`.
+
+The accepted risk is in that last sorting point: a build whose semver sorts lower than an
 existing one — a hotfix on an older line — would leave the phone offered the older
 build, silently and with no error. Versions here only ever go forward, so the
 situation does not arise.
