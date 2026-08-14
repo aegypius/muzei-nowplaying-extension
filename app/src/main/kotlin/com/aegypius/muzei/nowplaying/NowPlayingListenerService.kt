@@ -67,6 +67,7 @@ class NowPlayingListenerService : NotificationListenerService() {
             MuzeiArtworkPublisher(this),
             SharedPreferencesLastAlbum(this),
             Dispatchers.IO.limitedParallelism(1),
+            ConnectionPublishGate(this),
         )
     }
 

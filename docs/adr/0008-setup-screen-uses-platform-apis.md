@@ -1,9 +1,15 @@
 ---
-status: accepted
+status: partially superseded by ADR-0010
 date: 2026-08-14
 ---
 
 # Ask for notification access with platform APIs and no support library
+
+> The toolkit half of this decision — platform Activity, platform theme, no support
+> library — was superseded by
+> [ADR-0010](./0010-androidx-for-the-settings-screen.md) once a settings screen
+> existed. The deep link to this app's own notification toggle, and the platform
+> grant check, still stand.
 
 ## Context and Problem Statement
 

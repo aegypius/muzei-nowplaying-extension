@@ -6,7 +6,14 @@
        persistent URI from within this process. Muzei does not fetch it. -->
   <uses-permission android:name="android.permission.INTERNET" />
 
-  <application android:label="@string/app_name">
+  <!-- Required to ask ConnectivityManager whether the connection is metered.
+       Without it getNetworkCapabilities throws SecurityException, which would kill
+       the process on every publish. The predecessor declared it too. -->
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+  <application
+    android:label="@string/app_name"
+    android:theme="@style/Theme.NowPlaying">
 
     <!-- Muzei discovers art providers through the manifest; there is no
          registration call. The permission restricts access to Muzei, and the
@@ -15,9 +22,8 @@
 
          setupActivity is launched by Muzei before it enables the provider, and
          Muzei acts on the result code: a provider that cannot see media sessions
-         should not be enabled. settingsActivity is still omitted, because naming a
-         component that does not exist breaks Muzei's launch (4f10dc adds it with
-         the screen). -->
+         should not be enabled. settingsActivity is opened from Muzei's provider
+         list, and its result is not read. -->
     <provider
       android:name=".NowPlayingArtProvider"
       android:authorities="com.aegypius.muzei.nowplaying"
@@ -32,6 +38,10 @@
       <meta-data
         android:name="setupActivity"
         android:value="com.aegypius.muzei.nowplaying.SetupActivity" />
+
+      <meta-data
+        android:name="settingsActivity"
+        android:value="com.aegypius.muzei.nowplaying.SettingsActivity" />
     </provider>
 
     <!-- Launched by Muzei, so it must be exported. It holds nothing sensitive: it
@@ -39,8 +49,14 @@
     <activity
       android:name=".SetupActivity"
       android:exported="true"
-      android:label="@string/app_name"
-      android:theme="@android:style/Theme.DeviceDefault.DayNight" />
+      android:label="@string/app_name" />
+
+    <!-- Exported because Muzei opens it from its provider list. It takes no extras
+         and returns no result, so there is nothing for a caller to influence. -->
+    <activity
+      android:name=".SettingsActivity"
+      android:exported="true"
+      android:label="@string/settings_title" />
 
     <!-- The only route to media sessions: MediaSessionManager.getActiveSessions
          requires notification-listener access, which Android grants solely through

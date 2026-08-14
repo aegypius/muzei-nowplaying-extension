@@ -8,8 +8,7 @@ listening to on your home screen wallpaper.
 > a song replaces it with that album's cover. Delivered to the phone with Obtainium,
 > including in-place updates.
 >
-> Not built yet: a settings screen with the unmetered-only gate, and tapping the
-> wallpaper to open whatever is playing.
+> Settings, reachable from Muzei's provider list, offer an unmetered-only switch.
 
 ## How it works
 

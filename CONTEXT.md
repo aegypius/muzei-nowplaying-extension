@@ -44,10 +44,16 @@ _Avoid_: placeholder, default artwork — it is a real album, looked up for real
 the second term names something ADR-0003 rejected.
 
 **Publish**:
-To hand a Now Playing to Muzei, replacing whatever it held. Publishing is
-unconditional and immediate; it does not mean the wallpaper has changed, only
-that Muzei has been told.
+To hand a Now Playing to Muzei, replacing whatever it held. It does not mean the
+wallpaper has changed, only that Muzei has been told. Immediate, but not
+unconditional: the gate can refuse it.
 _Avoid_: push, sync, update.
+
+**Gate**:
+The check made at the moment of publishing, which can refuse it. Currently one
+question — whether the connection is one the user is willing to spend. It applies to
+music you play, not to Muzei asking for artwork itself.
+_Avoid_: filter, throttle — it neither transforms nor delays, it declines.
 
 **Miss**:
 The artwork service having nothing for an album key. A miss is ordinary and

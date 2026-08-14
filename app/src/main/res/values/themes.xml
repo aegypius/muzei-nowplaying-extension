@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+  <!-- Material 3 rather than the platform theme: AppCompatActivity and
+       PreferenceFragmentCompat both require an AppCompat-derived theme, and would
+       crash at runtime under Theme.DeviceDefault. DayNight follows the system
+       setting. See docs/adr/0010-androidx-for-the-settings-screen.md. -->
+  <style name="Theme.NowPlaying" parent="Theme.Material3.DayNight" />
+
+</resources>

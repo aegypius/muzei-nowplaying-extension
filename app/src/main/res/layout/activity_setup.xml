@@ -4,29 +4,40 @@
      text draws under the status bar and the button under the navigation bar, with no
      way to scroll to it at a large font scale or in landscape. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
+  android:fillViewport="true"
   android:fitsSystemWindows="true">
 
   <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:paddingHorizontal="24dp"
+    android:paddingVertical="32dp">
 
     <TextView
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:text="@string/setup_explanation"
-      android:textAppearance="@android:style/TextAppearance.DeviceDefault.Medium" />
+      android:text="@string/setup_headline"
+      android:textAppearance="?attr/textAppearanceHeadlineSmall" />
 
-    <Button
+    <TextView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="16dp"
+      android:text="@string/setup_explanation"
+      android:textAppearance="?attr/textAppearanceBodyMedium"
+      android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <com.google.android.material.button.MaterialButton
       android:id="@+id/grant_access"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
-      android:layout_gravity="start"
-      android:layout_marginTop="24dp"
-      android:text="@string/setup_open_settings" />
+      android:layout_marginTop="32dp"
+      android:text="@string/setup_open_settings"
+      app:icon="@android:drawable/ic_menu_manage" />
 
   </LinearLayout>
 

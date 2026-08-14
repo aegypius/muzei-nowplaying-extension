@@ -4,6 +4,7 @@
   <string name="provider_label">Now Playing</string>
   <string name="provider_description">The cover of whatever you are listening to.</string>
 
+  <string name="setup_headline">One permission needed</string>
   <string name="setup_explanation">Now Playing needs notification access to see what
     your music apps are playing. Android only grants this in system settings, so the
     button below opens the right page.\n\nIt reads the album from the media session
@@ -17,4 +18,11 @@
   <string name="setup_no_settings_message">This device has no notification access
     screen, so Now Playing cannot be granted access here. Grant it from system
     settings if your device offers it elsewhere.</string>
+
+  <string name="settings_title">Now Playing settings</string>
+  <string name="settings_unmetered_title">Only on unmetered connections</string>
+  <string name="settings_unmetered_summary_off">Artwork is looked up on any
+    connection. One lookup per album, not per track.</string>
+  <string name="settings_unmetered_summary_on">Artwork is looked up only on an
+    unmetered connection. The wallpaper keeps the last cover elsewhere.</string>
 </resources>

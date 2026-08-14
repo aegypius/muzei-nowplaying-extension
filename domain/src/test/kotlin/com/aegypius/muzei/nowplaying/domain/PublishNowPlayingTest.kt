@@ -69,4 +69,18 @@ class PublishNowPlayingTest {
 
         assertEquals(publisher.published.single().first.token, lastAlbum.saved)
     }
+
+    @Test
+    fun `a closed gate publishes nothing and remembers nothing`() = runTest {
+        val publisher = RecordingPublisher()
+        val lastAlbum = InMemoryLastAlbum()
+        val dispatcher = CountingDispatcher(StandardTestDispatcher(testScheduler))
+
+        PublishNowPlaying(publisher, lastAlbum, dispatcher, gate = { false })
+            .publish(track(albumArtist = "Radiohead", album = "In Rainbows"))
+
+        assertTrue(publisher.published.isEmpty())
+        // Nothing was shown, so there is nothing for a restart to restore.
+        assertEquals(null, lastAlbum.saved)
+    }
 }

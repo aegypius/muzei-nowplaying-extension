@@ -1,7 +1,5 @@
 package com.aegypius.muzei.nowplaying
 
-import android.app.Activity
-import android.app.AlertDialog
 import android.app.NotificationManager
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
@@ -9,7 +7,10 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
-import android.widget.Button
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
  * Asks for notification-listener access, which is the only route to media sessions.
@@ -22,11 +23,8 @@ import android.widget.Button
  * The permission cannot be requested in-app: Android grants notification-listener
  * access only through system settings, with no runtime dialog. The best available
  * is a deep link straight to this app's own toggle.
- *
- * See docs/adr/0008-setup-screen-uses-platform-apis.md for why this uses platform
- * APIs rather than AppCompat and the support libraries the predecessor used.
  */
-class SetupActivity : Activity() {
+class SetupActivity : AppCompatActivity() {
 
     /**
      * Both flags are saved: a rotation in Settings, or this process being evicted
@@ -59,7 +57,7 @@ class SetupActivity : Activity() {
         }
 
         setContentView(R.layout.activity_setup)
-        findViewById<Button>(R.id.grant_access).setOnClickListener { openSettings() }
+        findViewById<MaterialButton>(R.id.grant_access).setOnClickListener { openSettings() }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -129,7 +127,7 @@ class SetupActivity : Activity() {
 
     private fun showPrompt(titleRes: Int, messageRes: Int) {
         prompt?.dismiss()
-        prompt = AlertDialog.Builder(this)
+        prompt = MaterialAlertDialogBuilder(this)
             .setTitle(titleRes)
             .setMessage(messageRes)
             .setPositiveButton(R.string.setup_open_settings) { _, _ -> openSettings() }

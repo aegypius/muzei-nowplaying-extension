@@ -205,6 +205,9 @@ dependencies {
     implementation(project(":domain"))
     implementation(libs.muzei.api)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.preference)
+    implementation(libs.material)
 
     // Enough to assert our metadata key strings against the platform's own
     // constants. Those are compile-time inlined, so this needs no Robolectric.

@@ -56,10 +56,18 @@ restart.
 
 Downloaded cover images are also cached, in this app's own private storage rather
 than Muzei's, because this app is what downloads them. Clearing this app's data
-clears that cache. Nothing else is persisted, and nothing is stored outside the
-app's private directory.
+clears that cache. The unmetered-only setting is stored too. Nothing else is
+persisted, and nothing is stored outside the app's private directory.
 
 ## Metered connections
 
-There is a setting to publish only on an unmetered connection. It gates whether
-artwork is published at all, so no artwork lookup occurs while it applies.
+There is a setting to publish only on an unmetered connection. It is off by default.
+
+When on, it stops artwork being looked up for music you play on a metered connection —
+the wallpaper simply keeps the last cover instead.
+
+It does not stop everything. When Muzei asks for artwork itself, which happens when
+the provider is selected and after a restart, the album last shown is published
+regardless of the connection, so that the wallpaper is not left blank with no
+explanation. That is usually already cached here, but on a first run it is a sample
+album that has never been fetched, so one lookup can happen over metered data.
