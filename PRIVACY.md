@@ -18,12 +18,18 @@ those requests is outside this project's control.
 
 The lookup happens once per album, not once per track.
 
+One exception, and it is not music you played: before anything has ever played, the
+wallpaper shows an album from a short list shipped inside the app, looked up the same
+way. So the first lookup can name an album you have never listened to. Once you play
+something, that never happens again.
+
 ## What does not leave your device
 
 - Track titles. Only album artist and album are used in the lookup.
 - The list of apps you play music from.
 - Album art already present on your device — none is read, uploaded or scanned.
-- Anything at all when the app is idle.
+- Anything at all while music is idle, with one exception: the sample album
+  described above is looked up when Muzei asks for artwork and nothing has played.
 
 ## What the app can see but does not use
 

@@ -8,19 +8,12 @@ import kotlinx.coroutines.test.runTest
 
 class PublishNowPlayingTest {
 
-    private class RecordingPublisher : ArtworkPublisher {
-        val published = mutableListOf<Pair<AlbumKey, String>>()
-        override fun publish(key: AlbumKey, artworkUrl: String) {
-            published += key to artworkUrl
-        }
-    }
-
     @Test
     fun `publishes the album key and its lookup url`() = runTest {
         val publisher = RecordingPublisher()
         val dispatcher = CountingDispatcher(StandardTestDispatcher(testScheduler))
 
-        PublishNowPlaying(publisher, dispatcher).publish(
+        PublishNowPlaying(publisher, InMemoryLastAlbum(), dispatcher).publish(
             track(albumArtist = "Radiohead", album = "In Rainbows"),
         )
 
@@ -41,7 +34,8 @@ class PublishNowPlayingTest {
         val publisher = RecordingPublisher()
         val dispatcher = CountingDispatcher(StandardTestDispatcher(testScheduler))
 
-        PublishNowPlaying(publisher, dispatcher).publish(track(title = "Unknown"))
+        PublishNowPlaying(publisher, InMemoryLastAlbum(), dispatcher)
+            .publish(track(title = "Unknown"))
 
         // Replacing good artwork with a lookup that cannot succeed is worse than
         // leaving the wallpaper alone.
@@ -53,12 +47,26 @@ class PublishNowPlayingTest {
         val publisher = RecordingPublisher()
         val dispatcher = CountingDispatcher(StandardTestDispatcher(testScheduler))
 
-        PublishNowPlaying(publisher, dispatcher).publish(track(artist = "Radiohead"))
+        PublishNowPlaying(publisher, InMemoryLastAlbum(), dispatcher)
+            .publish(track(artist = "Radiohead"))
 
         val (_, url) = publisher.published.single()
         assertEquals(
             "https://artwork.shuttlemusicplayer.app/api/v1/artwork?artist=Radiohead",
             url,
         )
+    }
+
+    @Test
+    fun `remembers what it published, so a restart can restore it`() = runTest {
+        val publisher = RecordingPublisher()
+        val lastAlbum = InMemoryLastAlbum()
+        val dispatcher = CountingDispatcher(StandardTestDispatcher(testScheduler))
+
+        PublishNowPlaying(publisher, lastAlbum, dispatcher).publish(
+            track(albumArtist = "Radiohead", album = "In Rainbows"),
+        )
+
+        assertEquals(publisher.published.single().first.token, lastAlbum.saved)
     }
 }

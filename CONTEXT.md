@@ -33,8 +33,15 @@ and produce no wallpaper change. Album artist is used rather than artist so a
 compilation stays one album. The album may be absent — an artist alone is enough
 to look artwork up — so an album key without one is the artist
 fallback's lookup rather than a different kind of thing.
-_Avoid_: token — that is the name of the field the key is written into, not the
-concept.
+_Avoid_: token for the concept — that is the name of the field the key is written
+into. The word is correct when referring to that serialised value, which is also
+what gets persisted.
+
+**Sample album**:
+One of a short list shipped inside the app, shown before anything has ever played.
+Looked up exactly like a real one, so the first run proves the whole path works.
+_Avoid_: placeholder, default artwork — it is a real album, looked up for real, and
+the second term names something ADR-0003 rejected.
 
 **Publish**:
 To hand a Now Playing to Muzei, replacing whatever it held. Publishing is

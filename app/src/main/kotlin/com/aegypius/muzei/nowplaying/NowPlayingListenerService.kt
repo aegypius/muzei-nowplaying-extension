@@ -65,6 +65,7 @@ class NowPlayingListenerService : NotificationListenerService() {
         // stale album as the winner.
         publishNowPlaying = PublishNowPlaying(
             MuzeiArtworkPublisher(this),
+            SharedPreferencesLastAlbum(this),
             Dispatchers.IO.limitedParallelism(1),
         )
     }

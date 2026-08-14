@@ -16,12 +16,18 @@ fun interface ArtworkPublisher {
  */
 class PublishNowPlaying(
     private val publisher: ArtworkPublisher,
+    private val lastAlbum: LastAlbum,
     private val dispatcher: CoroutineDispatcher,
 ) {
     suspend fun publish(track: Track) {
         // No artist of any kind means there is nothing to look up. Publishing a
         // meaningless request would replace good artwork with a miss.
         val key = AlbumKey.of(track) ?: return
-        withContext(dispatcher) { publisher.publish(key, ArtworkUrl.of(key)) }
+        withContext(dispatcher) {
+            publisher.publish(key, ArtworkUrl.of(key))
+            // Remembered after publishing, not before: nothing should be restored
+            // that was never shown.
+            lastAlbum.save(key.token)
+        }
     }
 }

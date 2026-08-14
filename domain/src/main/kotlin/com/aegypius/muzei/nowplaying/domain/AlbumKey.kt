@@ -16,6 +16,10 @@ data class AlbumKey internal constructor(
      * Length-prefixed rather than joined with a separator: any separator can
      * legitimately occur inside an artist or album name, and two different keys
      * sharing a token would make Muzei skip the second as already published.
+     *
+     * This value is also what gets persisted as the last album, so changing the
+     * format invalidates what was already stored. The cost is one blank wallpaper
+     * until something plays, because an unparseable value is treated as absent.
      */
     val token: String
         get() = "${albumArtist.length}:$albumArtist:${album?.length ?: ABSENT_ALBUM}:${album ?: ""}"

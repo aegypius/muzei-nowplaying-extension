@@ -1,8 +1,8 @@
 package com.aegypius.muzei.nowplaying
 
-import android.util.Log
 import com.aegypius.muzei.nowplaying.domain.AlbumKey
-import com.aegypius.muzei.nowplaying.domain.ArtistFallback
+import com.aegypius.muzei.nowplaying.domain.PublishArtistFallback
+import com.aegypius.muzei.nowplaying.domain.RestoreLastAlbum
 import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.MuzeiArtProvider
 
@@ -16,13 +16,20 @@ import com.google.android.apps.muzei.api.provider.MuzeiArtProvider
 class NowPlayingArtProvider : MuzeiArtProvider() {
 
     /**
-     * Muzei is asking for more artwork, and there is nothing to give it.
+     * Muzei is asking for artwork, which happens when the provider is first selected
+     * and after a restart, before anything has played in this process.
      *
-     * The wallpaper changes when the music changes, not when Muzei asks. Until
-     * something plays, the previous artwork stays, which is what ADR-0003 wants.
-     * Republishing the last album across a restart is ticket 504243.
+     * The album last published is restored if there is one. If nothing has ever
+     * played, a sample album is published through the ordinary lookup so the
+     * wallpaper is never blank with no explanation.
      */
-    override fun onLoadRequested(initial: Boolean) = Unit
+    override fun onLoadRequested(initial: Boolean) {
+        val context = context ?: return
+        RestoreLastAlbum(
+            lastAlbum = SharedPreferencesLastAlbum(context),
+            publisher = { key, artworkUrl -> setArtwork(artworkFor(key, artworkUrl)) },
+        ).publish()
+    }
 
     /**
      * Muzei could not load the artwork.
@@ -33,21 +40,19 @@ class NowPlayingArtProvider : MuzeiArtProvider() {
      * decision.
      */
     override fun onInvalidArtwork(artwork: Artwork) {
+        val context = context ?: return
         val failedUrl = artwork.persistentUri?.toString() ?: return
         val key = artwork.token?.let(AlbumKey::fromToken) ?: return
 
-        val next = ArtistFallback.after(failedUrl = failedUrl, key = key)
-        if (next == null) {
-            // Deliberately not calling super: keeping a stale cover beats emptying
-            // the provider. See docs/adr/0003-sticky-when-idle.md.
-            Log.i(TAG, "nothing left to try for ${artwork.token}; keeping current artwork")
-            return
-        }
-
-        // Published under the album-less key, which is what the retry actually
-        // looks up. Reusing the failed artwork's token would make Muzei skip it as
-        // already published, so the fallback would never reach the wallpaper.
-        setArtwork(artworkFor(key.withoutAlbum(), next))
+        // Deliberately never calls super, which would delete the artwork and leave
+        // the wallpaper with nothing: a stale cover beats an empty provider. See
+        // docs/adr/0003-sticky-when-idle.md.
+        PublishArtistFallback(
+            lastAlbum = SharedPreferencesLastAlbum(context),
+            publisher = { fallbackKey, artworkUrl ->
+                setArtwork(artworkFor(fallbackKey, artworkUrl))
+            },
+        ).after(failedUrl = failedUrl, key = key)
     }
 
     private companion object {
