@@ -24,11 +24,7 @@ pre_bump_hooks = [
 [changelog]
 path = "CHANGELOG.md"
 
-# Rejects a malformed commit message as it is written, which is the only moment
-# fixing one is free. Install with `cog install-hook --all`.
-# commit-msg is the only hook type cocogitto supports.
-[git_hooks.commit-msg]
-script = """#!/bin/sh
-set -e
-cog verify --file $1
-"""
+# No [git_hooks] section on purpose. `lefthook install` renames any hook it does
+# not manage to <hook>.old, so a cog-installed commit-msg hook would be silently
+# displaced. lefthook.yml declares the conventional-commit check instead and
+# calls `cog verify` from there -- one installer, one place to look.

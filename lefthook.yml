@@ -1,0 +1,80 @@
+# Fast, host-native quality gates. Nothing here starts a container: `just check`
+# owns compilation and tests, where a minute is acceptable, whereas a commit hook
+# has to stay unnoticeable.
+#
+# Install with `lefthook install`.
+#
+# TWO THINGS THAT BITE:
+#
+# 1. `lefthook install` renames any hook it does not manage to <hook>.old. That
+#    would silently displace cocogitto's commit-msg hook, so the conventional
+#    commit check is declared here instead and cog.toml no longer installs it.
+#
+# 2. A `run:` value containing a colon followed by a space must use a block
+#    scalar, or YAML parses it as a mapping and lefthook refuses the whole file.
+
+commit-msg:
+  jobs:
+    # Rejects a malformed message while it is still cheap to fix. cocogitto
+    # derives the semantic version and the changelog from these, so a sloppy
+    # message is a lost release note.
+    - name: conventional-commit
+      run: |
+        cog verify --file {1}
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: merge-conflict-markers
+      run: |
+        if grep -InE '^(<<<<<<< |>>>>>>> )' {staged_files}; then
+          echo "conflict markers above"
+          exit 1
+        fi
+
+    # .md is exempt because .editorconfig sets trim_trailing_whitespace = false
+    # there: trailing spaces are a line break in Markdown.
+    - name: trailing-whitespace
+      exclude:
+        - "*.md"
+        - gradlew
+        - LICENSE
+      run: |
+        if grep -InE ' +$' {staged_files}; then
+          echo "trailing whitespace above"
+          exit 1
+        fi
+
+    - name: final-newline
+      exclude:
+        - gradlew
+        - "*.jar"
+      run: |
+        for f in {staged_files}; do
+          if [ -s "$f" ] && [ -n "$(tail -c 1 "$f")" ]; then
+            echo "no final newline: $f"
+            exit 1
+          fi
+        done
+
+    - name: toml-parses
+      glob: "*.toml"
+      run: |
+        python3 -c "import tomllib,sys;[tomllib.load(open(f,'rb')) for f in sys.argv[1:]]" {staged_files}
+
+    - name: xml-parses
+      glob: "*.xml"
+      run: |
+        python3 -c "import xml.etree.ElementTree as ET,sys;[ET.parse(f) for f in sys.argv[1:]]" {staged_files}
+
+    # .gitignore already excludes these, but `git add -f` bypasses it and losing
+    # the signing key means every phone has to reinstall from scratch. See
+    # ADR-0004.
+    - name: no-signing-material
+      glob:
+        - "*.jks"
+        - "*.keystore"
+        - keystore.properties
+      run: |
+        echo "refusing to commit signing material: {staged_files}"
+        exit 1

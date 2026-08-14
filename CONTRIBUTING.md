@@ -31,10 +31,19 @@ they need directly and pass fakes.
 
 ## Commits
 
-Commits follow [Conventional Commits](https://www.conventionalcommits.org/), and
-`cog install-hook commit-msg` rejects malformed messages when you write them —
-which is the only moment fixing one is free. After the fact it means rewriting
-history.
+Run `lefthook install` once per clone. It installs both hooks, and a malformed
+commit message is then rejected as you write it — the only moment fixing one is
+free. After the fact it means rewriting history.
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/). The
+`commit-msg` hook runs `cog verify`; do not install cocogitto's own hook, because
+`lefthook install` would rename it away. `lefthook.yml` is the single place hooks
+are declared.
+
+The `pre-commit` hook only runs checks that finish in well under a second —
+conflict markers, trailing whitespace, final newlines, TOML and XML parsing, and
+a refusal to commit signing material. Compilation and tests are deliberately not
+there: `just check` owns those, where taking a minute is acceptable.
 
 This is not decoration. `cog` derives the next semantic version from commit types
 and generates `CHANGELOG.md` from them, so a lazily-typed message is a lost
