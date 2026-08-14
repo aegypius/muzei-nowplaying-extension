@@ -1,0 +1,34 @@
+# cocogitto configuration. See docs/adr/0005-elapsed-seconds-version-code.md.
+#
+# `cog bump` owns the semantic version: it derives the next one from Conventional
+# Commit types, writes it into version.properties, regenerates CHANGELOG.md,
+# commits both and tags. It does not build or publish anything -- every build is
+# release-signed and servable already, so a bump only records that the semantic
+# version moved.
+
+tag_prefix = "v"
+branch_whitelist = ["main"]
+ignore_merge_commits = true
+
+# Writes the computed version into version.properties before the bump commit, so
+# the build reads a static file and needs neither git nor cocogitto inside the
+# container.
+#
+# Deliberately a targeted substitution rather than rewriting the file: the
+# codeEpoch constant and the comment block explaining it must survive, and only
+# the `name` line is generated output.
+pre_bump_hooks = [
+  "sed -i 's/^name = .*/name = {{version}}/' version.properties",
+]
+
+[changelog]
+path = "CHANGELOG.md"
+
+# Rejects a malformed commit message as it is written, which is the only moment
+# fixing one is free. Install with `cog install-hook --all`.
+# commit-msg is the only hook type cocogitto supports.
+[git_hooks.commit-msg]
+script = """#!/bin/sh
+set -e
+cog verify --file $1
+"""
