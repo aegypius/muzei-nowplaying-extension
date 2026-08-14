@@ -53,6 +53,25 @@ Write the *why* in the body, especially when removing something. The single most
 useful artefact in this project's predecessor was a changelog that explained why
 features were deleted; that is where several of the ADRs here came from.
 
+## Signing
+
+Every release build is signed, and there is no unsigned fallback: an unsigned APK
+cannot be installed, so producing one would only waste a build. `just build` fails
+at packaging with a message naming what is missing.
+
+`just keystore` creates the key at `~/.config/nowplaying/release.jks`, prompting
+for the passwords so they are never written down by anything but you. It refuses to
+overwrite an existing key. Copy the alias and passwords into `keystore.properties`,
+which is gitignored and which a pre-commit hook refuses to accept.
+
+The key lives outside the work tree so no `git add` can reach it, and the justfile
+bind-mounts it read-only into the build container. Override the location with
+`NOWPLAYING_KEYSTORE` if you keep it elsewhere.
+
+Back it up somewhere other than this machine. Obtainium updates in place only
+while the signature is unchanged, so losing the key means uninstalling and
+reinstalling by hand on every device.
+
 ## Releasing
 
 `cog bump` — with `--auto`, or `--patch` / `--minor` / `--major` — updates

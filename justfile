@@ -13,6 +13,22 @@ runtime := env('CONTAINER_RUNTIME', 'podman')
 toolchain_image := "nowplaying-build:local"
 serve_image := "nowplaying-serve:local"
 
+# The release keystore lives outside the repository, so a stray `git add -f`
+# cannot reach it. It is bind-mounted read-only at a fixed path in the container,
+# and that path is passed in as an environment variable so the justfile is the
+# only place that decides it. See docs/adr/0004-obtainium-distribution.md.
+keystore := env(
+    'NOWPLAYING_KEYSTORE',
+    home_directory() / ".config/nowplaying/release.jks",
+)
+keystore_in_container := "/keystore.jks"
+keystore_mount := if path_exists(keystore) == "true" {
+    "-v " + keystore + ":" + keystore_in_container + ":ro" +
+    " -e NOWPLAYING_KEYSTORE=" + keystore_in_container
+} else {
+    ""
+}
+
 # Named volume for GRADLE_USER_HOME, so dependencies survive between runs and
 # nothing lands on the host filesystem. Must match the Containerfile.
 gradle_volume := "nowplaying-gradle"
@@ -47,8 +63,8 @@ image:
 
 # Run a command inside the toolchain container.
 [private]
-_run +args:
-    {{runtime}} run --rm {{user_flag}} \
+_run mounts +args:
+    {{runtime}} run --rm {{user_flag}} {{mounts}} \
         -v {{justfile_directory()}}:/workspace \
         -v {{gradle_volume}}:{{gradle_home}} \
         -w /workspace \
@@ -66,14 +82,14 @@ _run +args:
 # otherwise split into separate arguments.
 
 # Run the tests, optionally filtered, e.g. just test '*AlbumKeyTest*'
-test pattern="": (_run "./gradlew" "--console=plain" \
+test pattern="": (_run "" "./gradlew" "--console=plain" \
     (if pattern == "" { "test" } else { ":domain:test --tests " + quote(pattern) }))
 
-# Neither the signing config nor the versioned copy into dist/ is wired up yet,
-# so this cannot produce something installable.
+# Release-signed, so it needs the key: see the Signing section of CONTRIBUTING.md.
+# Copying the result into dist/ under its versioned name is still to come (a1c076).
 
 # Assemble a release APK.
-build: (_run "./gradlew" "--console=plain" "assembleRelease")
+build: (_run keystore_mount "./gradlew" "--console=plain" "assembleRelease")
 
 # No --user here: /srv is mounted read-only and nothing is written to the host,
 # so the ownership problem in ADR-0007 does not arise. The caddy stage is also a
@@ -85,6 +101,31 @@ serve port="8080":
     {{runtime}} run --rm -p {{port}}:8080 \
         -v {{justfile_directory()}}/dist:/srv:ro \
         {{serve_image}}
+
+# You type the password into keytool's own prompt, so it never reaches a command
+# line, this file, or a shell history. Back the result up somewhere other than this
+# machine: losing it means every install has to start over.
+#
+# Refuses to overwrite an existing key, because that is unrecoverable.
+
+# Create the release keystore.
+keystore:
+    #!/usr/bin/env sh
+    set -eu
+    if [ -e "{{keystore}}" ]; then
+        echo "refusing to overwrite the existing key at {{keystore}}"
+        exit 1
+    fi
+    mkdir -p "{{parent_directory(keystore)}}"
+    {{runtime}} run --rm -it {{user_flag}} \
+        -v "{{parent_directory(keystore)}}":/out \
+        {{toolchain_image}} \
+        keytool -genkeypair -v \
+            -keystore "/out/{{file_name(keystore)}}" \
+            -alias nowplaying -keyalg RSA -keysize 4096 -validity 10000
+    chmod 600 "{{keystore}}"
+    echo "created {{keystore}} (mode 600)"
+    echo "now set alias and storePass in keystore.properties"
 
 # The order is load-bearing, not stylistic. cog bump writes the new semantic
 # version into version.properties, so anything built before it carries the old

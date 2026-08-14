@@ -66,6 +66,43 @@ tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 
+/**
+ * Release signing material, or null when it is not fully available.
+ *
+ * The keystore path arrives as an environment variable that the justfile sets when
+ * it bind-mounts the key read-only into the container; the password comes from a
+ * gitignored keystore.properties. Neither is ever committed.
+ *
+ * Null rather than an error, deliberately: :app is configured on every invocation,
+ * including `just test`, which must not require the key. The release packaging task
+ * is failed instead, further down.
+ */
+class SigningMaterial(
+    val storeFile: File,
+    val alias: String,
+    val password: String,
+) {
+    // Never rendered, so a stack trace or a stray log cannot print the password.
+    override fun toString(): String = "SigningMaterial(storeFile=$storeFile, alias=$alias)"
+}
+
+val signingMaterial: SigningMaterial? = run {
+    val keystorePath = providers.environmentVariable("NOWPLAYING_KEYSTORE").orNull
+        ?: return@run null
+    val propertiesFile = rootProject.file("keystore.properties")
+    if (!propertiesFile.exists()) return@run null
+
+    val properties = Properties().apply { propertiesFile.inputStream().use { load(it) } }
+    fun value(key: String): String? =
+        properties.getProperty(key)?.trim()?.takeIf { it.isNotEmpty() }
+
+    SigningMaterial(
+        storeFile = File(keystorePath),
+        alias = value("alias") ?: return@run null,
+        password = value("storePass") ?: return@run null,
+    )
+}
+
 android {
     namespace = "com.aegypius.muzei.nowplaying"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -93,6 +130,43 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    signingConfigs {
+        signingMaterial?.let { material ->
+            create("release") {
+                storeFile = material.storeFile
+                keyAlias = material.alias
+                storePassword = material.password
+                // keytool produces PKCS12, which does not support a key password
+                // distinct from the store password -- it warns and ignores one.
+                keyPassword = material.password
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Absent material leaves this null, and packageRelease is failed below
+            // rather than being allowed to emit an APK Android cannot install.
+            signingConfig = signingConfigs.findByName("release")
+        }
+    }
+}
+
+// Fails before anything is packaged, rather than producing app-release-unsigned.apk
+// that no phone will accept. Only the release packaging is affected: tests and
+// debug builds do not need the key.
+if (signingMaterial == null) {
+    tasks.matching { it.name == "packageRelease" }.configureEach {
+        doFirst {
+            error(
+                "release signing material is incomplete. `just keystore` creates the " +
+                    "key; keystore.properties must then set `alias` and `storePass` " +
+                    "(see keystore.properties.example). NOWPLAYING_KEYSTORE must point " +
+                    "at the key, which `just build` arranges.",
+            )
+        }
     }
 }
 

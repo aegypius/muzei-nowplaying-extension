@@ -28,9 +28,10 @@ There is no Play Store listing and no `adb`. Builds are release-signed and serve
 over HTTP on your local network, and [Obtainium](https://obtainium.imranr.dev/)
 installs them from there.
 
-Setup you have to do once: create a release keystore and fill in
-`keystore.properties` from the example. Lose that key and updates stop installing
-over the existing app.
+Setup you have to do once: run `just keystore` to create the release key, then
+copy its alias and passwords into `keystore.properties` from the example. The key
+itself lives outside the repository, at `~/.config/nowplaying/release.jks`. Back it
+up somewhere else — lose it and updates stop installing over the existing app.
 
 ## Privacy
 
