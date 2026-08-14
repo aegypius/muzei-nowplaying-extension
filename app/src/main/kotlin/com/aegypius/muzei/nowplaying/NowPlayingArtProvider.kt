@@ -2,22 +2,27 @@ package com.aegypius.muzei.nowplaying
 
 import android.net.Uri
 import android.util.Log
+import com.aegypius.muzei.nowplaying.domain.AlbumKey
+import com.aegypius.muzei.nowplaying.domain.ArtistFallback
+import com.aegypius.muzei.nowplaying.domain.ArtworkUrl
+import com.aegypius.muzei.nowplaying.domain.Track
 import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.MuzeiArtProvider
 
 /**
  * Publishes the album currently playing to Muzei.
  *
- * At present it publishes one fixed album, so that provider discovery, the
- * manifest wiring and the delivery chain can be verified on a real device before
- * any now-playing detection exists (ticket a4e011). The placeholder points at the
- * production artwork endpoint rather than a bundled image, so the request shape is
- * exercised too.
+ * Thin glue on purpose: the album key, the lookup URL and the fallback rule all
+ * live in :domain, where they are unit tested. This class only translates between
+ * that and Muzei's API.
+ *
+ * It still publishes one fixed album, so the delivery chain can be verified on a
+ * device before now-playing detection exists (ticket a4e011).
  */
 class NowPlayingArtProvider : MuzeiArtProvider() {
 
     override fun onLoadRequested(initial: Boolean) {
-        publish(artworkUri(ALBUM_ARTIST, ALBUM))
+        publish(PLACEHOLDER_KEY, ArtworkUrl.of(PLACEHOLDER_KEY))
     }
 
     /**
@@ -25,35 +30,36 @@ class NowPlayingArtProvider : MuzeiArtProvider() {
      *
      * The inherited default deletes it, which for a single-artwork provider leaves
      * the wallpaper with nothing at all — the API's own documentation warns about
-     * exactly that. Instead, retry with the album omitted, which the endpoint
-     * answers with artist art. See docs/adr/0001-remote-only-artwork.md.
+     * exactly that. The decision of what to try next, including when to stop, is
+     * ArtistFallback's.
      */
     override fun onInvalidArtwork(artwork: Artwork) {
-        val fallback = artworkUri(ALBUM_ARTIST, album = null)
-        if (artwork.persistentUri == fallback) {
-            // The fallback failed too. Deliberately not calling super: keeping a
-            // stale cover beats emptying the provider. See ADR-0003.
-            Log.i(TAG, "artist fallback also failed for token ${artwork.token}")
+        val failedUrl = artwork.persistentUri?.toString() ?: return
+        val next = ArtistFallback.after(failedUrl = failedUrl, key = PLACEHOLDER_KEY)
+        if (next == null) {
+            // Deliberately not calling super: keeping a stale cover beats emptying
+            // the provider. See docs/adr/0003-sticky-when-idle.md.
+            Log.i(TAG, "nothing left to try for token ${artwork.token}; keeping current artwork")
             return
         }
-        publish(fallback)
+        publish(PLACEHOLDER_KEY, next)
     }
 
     /**
      * setArtwork replaces the whole table: one artwork, always the current album.
      * MuzeiArtProvider is itself a ProviderClient, so this needs no authority and
-     * no context — which is why neither is duplicated from the manifest.
+     * no context.
      */
-    private fun publish(artworkUri: Uri) {
+    private fun publish(key: AlbumKey, artworkUrl: String) {
         setArtwork(
             Artwork.Builder()
-                .token(albumKey(ALBUM_ARTIST, ALBUM))
+                .token(key.token)
                 // The caption names the album and its artist, never the track:
                 // under an album-level token Muzei has no reason to update it
                 // mid-record. See docs/adr/0002-album-level-identity.md.
-                .title(ALBUM)
-                .byline(ALBUM_ARTIST)
-                .persistentUri(artworkUri)
+                .title(key.album ?: key.albumArtist)
+                .byline(key.albumArtist)
+                .persistentUri(Uri.parse(artworkUrl))
                 .build(),
         )
     }
@@ -61,23 +67,16 @@ class NowPlayingArtProvider : MuzeiArtProvider() {
     private companion object {
         const val TAG = "NowPlayingArtProvider"
 
-        const val ARTWORK_ENDPOINT = "https://artwork.shuttlemusicplayer.app/api/v1/artwork"
-
-        // Fixed until the notification listener supplies real metadata (a4e011).
-        const val ALBUM_ARTIST = "Radiohead"
-        const val ALBUM = "In Rainbows"
-
-        /**
-         * Album artist plus album, per ADR-0002. Ticket 37a746 owns the real
-         * type and its serialisation; this is the placeholder's stand-in.
-         */
-        fun albumKey(albumArtist: String, album: String) = "$albumArtist|$album"
-
-        /** Omitting the album yields artist art rather than a cover. */
-        fun artworkUri(albumArtist: String, album: String?): Uri =
-            Uri.parse(ARTWORK_ENDPOINT).buildUpon()
-                .appendQueryParameter("artist", albumArtist)
-                .apply { if (album != null) appendQueryParameter("album", album) }
-                .build()
+        /** Fixed until the notification listener supplies real metadata (a4e011). */
+        val PLACEHOLDER_KEY: AlbumKey = requireNotNull(
+            AlbumKey.of(
+                Track(
+                    title = null,
+                    artist = null,
+                    albumArtist = "Radiohead",
+                    album = "In Rainbows",
+                ),
+            ),
+        ) { "the placeholder track must always yield an album key" }
     }
 }

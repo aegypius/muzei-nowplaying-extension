@@ -29,7 +29,9 @@ album. The raw input, before it is reduced to an album key.
 **Album key**:
 Album artist plus album. Two tracks sharing an album key are the same Now Playing
 and produce no wallpaper change. Album artist is used rather than artist so a
-compilation stays one album.
+compilation stays one album. The album may be absent — an artist alone is enough
+to look artwork up — so an album key without one is the artist
+fallback's lookup rather than a different kind of thing.
 _Avoid_: token — that is the name of the field the key is written into, not the
 concept.
 
