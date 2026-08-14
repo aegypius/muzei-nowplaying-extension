@@ -3,8 +3,13 @@
 A [Muzei](https://muzei.co/) art provider that puts the cover of whatever you are
 listening to on your home screen wallpaper.
 
-> **Status:** designed, not yet implemented. The decisions below are settled and
-> recorded; the code is not written.
+> **Status:** working. Verified on a clean install: enabling the extension asks for
+> notification access, a sample album appears before anything has played, and playing
+> a song replaces it with that album's cover. Delivered to the phone with Obtainium,
+> including in-place updates.
+>
+> Not built yet: a settings screen with the unmetered-only gate, and tapping the
+> wallpaper to open whatever is playing.
 
 ## How it works
 
