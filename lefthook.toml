@@ -17,6 +17,13 @@
 #
 # Shell snippets use ''' literal strings so nothing needs escaping.
 
+# Report outcomes only: one line per job, plus a failing job's own output. The
+# banner, the per-job headers and the skip notices are noise on every commit.
+#
+# `execution_out` is deliberately absent. A failing job's stdout is printed
+# regardless, so adding it only emits a blank line for every job that passed.
+output = ["failure", "success"]
+
 [commit-msg]
 
 # Rejects a malformed message while it is still cheap to fix. cocogitto derives
