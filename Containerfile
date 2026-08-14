@@ -87,9 +87,8 @@ RUN set -eux; \
     chmod -R a+rX "${ANDROID_HOME}"; \
     chmod -R a+rwX "${HOME}"
 
-# No USER directive on purpose. Under rootless podman, selecting a non-root user
-# maps into subuids that cannot write the bind-mounted work tree; the justfile
-# passes --user only for docker, where the default would otherwise be root and
-# leave root-owned build output on the host.
+# No USER directive on purpose: the running UID differs between runtimes, so
+# nothing here may assume one. The justfile supplies --user for docker only.
+# See docs/adr/0007-per-runtime-container-flags.md.
 
 WORKDIR /workspace
