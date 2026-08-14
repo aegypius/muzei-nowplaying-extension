@@ -9,11 +9,12 @@ One thing: for each album you listen to, the **album artist and album name** are
 sent as a URL to `artwork.shuttlemusicplayer.app`, a third-party artwork service,
 in order to retrieve a cover image.
 
-That request is made by Muzei rather than by this app — Now Playing hands Muzei a
-URL and Muzei fetches it. Either way the album artist and album name reach a third
-party, along with whatever your network connection reveals about you, such as your
-IP address. That service's handling of those requests is outside this project's
-control.
+**This app makes that request itself**, which is why it holds the `INTERNET`
+permission. Muzei asks Now Playing for the image rather than fetching it, so the
+connection to the artwork service is opened by this app, from your device. The
+album artist and album name reach a third party, along with whatever your network
+connection reveals about you, such as your IP address. That service's handling of
+those requests is outside this project's control.
 
 The lookup happens once per album, not once per track.
 
@@ -31,8 +32,15 @@ Android grants it visibility of every notification, not only media ones. This ap
 reads media session metadata — title, artist, album artist, album — and ignores
 everything else. The title is used for nothing today and is not transmitted.
 
-The most recent album artist and album are stored on the device so the wallpaper
-can be restored after a restart. Nothing else is persisted.
+## What is stored on the device
+
+The most recent album artist and album, so the wallpaper can be restored after a
+restart.
+
+Downloaded cover images are also cached, in this app's own private storage rather
+than Muzei's, because this app is what downloads them. Clearing this app's data
+clears that cache. Nothing else is persisted, and nothing is stored outside the
+app's private directory.
 
 ## Metered connections
 
