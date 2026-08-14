@@ -57,6 +57,17 @@ ENV HOME=/home/build
 ENV GRADLE_USER_HOME=/home/build/.gradle
 ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
 
+# Without pipefail, a RUN containing a pipe reports the exit status of the last
+# command only -- so a failing sdkmanager or a failed checksum read would be
+# masked by a successful tail of the pipeline.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Versions are deliberately not pinned here. On an Ubuntu base the archive keeps
+# only the current version of each package, so a pin breaks the build the first
+# time a security update supersedes it. The honest consequence is that curl and
+# unzip float even though everything else is pinned; nothing in the produced
+# image depends on their exact versions.
+# hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl unzip \
     && rm -rf /var/lib/apt/lists/*
@@ -75,8 +86,12 @@ RUN --mount=type=cache,target=/tmp/dl \
     unzip -q "/tmp/dl/${CMDLINE_TOOLS_ZIP}" -d "${ANDROID_HOME}/cmdline-tools"; \
     mv "${ANDROID_HOME}/cmdline-tools/cmdline-tools" "${ANDROID_HOME}/cmdline-tools/latest"
 
+# Finite input rather than `yes |`. Under pipefail an endless `yes` is killed by
+# SIGPIPE when sdkmanager exits, and the pipeline then reports 141 and fails the
+# build. A bounded feed accepts every licence and still surfaces a genuine
+# sdkmanager failure, which `yes |` was previously hiding.
 RUN set -eux; \
-    yes | sdkmanager --licenses > /dev/null; \
+    printf 'y\n%.0s' {1..100} | sdkmanager --licenses > /dev/null; \
     sdkmanager --install "platform-tools" "${ANDROID_PLATFORM}" "${ANDROID_BUILD_TOOLS}"
 
 # The image is run under two different UID regimes -- docker with --user $(id -u),
