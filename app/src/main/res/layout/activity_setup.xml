@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fitsSystemWindows and the ScrollView are both required, not decorative:
+     edge-to-edge is enforced unconditionally from targetSdk 35, so without them the
+     text draws under the status bar and the button under the navigation bar, with no
+     way to scroll to it at a large font scale or in landscape. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:fitsSystemWindows="true">
+
+  <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/setup_explanation"
+      android:textAppearance="@android:style/TextAppearance.DeviceDefault.Medium" />
+
+    <Button
+      android:id="@+id/grant_access"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_gravity="start"
+      android:layout_marginTop="24dp"
+      android:text="@string/setup_open_settings" />
+
+  </LinearLayout>
+
+</ScrollView>
