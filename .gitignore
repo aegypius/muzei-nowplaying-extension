@@ -1,7 +1,12 @@
 # Upstream clones kept beside this project as read-only reference.
 # See AGENTS.md — read them, never paste from them, never commit them.
-muzei/
-MuzeiMusicExtension/
+#
+# The leading slash is essential. Unanchored, `muzei/` matches a directory of
+# that name at ANY depth, which silently excluded the entire source tree --
+# the package is com.aegypius.muzei.nowplaying, so every file lives under a
+# directory called `muzei`.
+/muzei/
+/MuzeiMusicExtension/
 
 # Signing. The release key must never be committed; see keystore.properties.example.
 keystore.properties
@@ -15,6 +20,11 @@ dist/
 local.properties
 .claude/settings.local.json
 .parsec/
+
+# The Gradle wrapper jar must be committed or ./gradlew cannot bootstrap itself.
+# Re-included explicitly because the global gitignore excludes *.jar, which would
+# otherwise drop it silently and leave a fresh clone unable to build.
+!gradle/wrapper/gradle-wrapper.jar
 
 # Gradle and Android build output
 .gradle/

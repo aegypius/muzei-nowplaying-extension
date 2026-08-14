@@ -16,6 +16,11 @@ ij_kotlin_allow_trailing_comma_on_call_site = true
 [*.{xml,yml,yaml,toml,json}]
 indent_size = 2
 
+# A version catalog's coordinate lines cannot wrap; the 100-column rule is for
+# code, not for dependency declarations.
+[*.toml]
+max_line_length = off
+
 [*.md]
 trim_trailing_whitespace = false
 

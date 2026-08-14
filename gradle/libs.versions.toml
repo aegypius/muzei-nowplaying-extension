@@ -1,0 +1,33 @@
+[versions]
+agp = "9.3.1"
+kotlin = "2.4.10"
+
+# API 37 ships only as minor-versioned platforms, and the Containerfile installs
+# platforms;android-37.0 with build-tools;37.0.0. These must agree with it, or
+# the build fails at configuration time asking for a platform that is absent.
+compileSdk = "37"
+compileSdkMinor = "0"
+buildTools = "37.0.0"
+targetSdk = "37"
+minSdk = "34"
+
+# Matches muzei/version.properties (apiName = 3.4.2) exactly, so the local clone
+# is readable source for the artifact this depends on.
+muzeiApi = "3.4.2"
+
+# JUnit 5, not 6. JUnit 6.1.3 is current upstream, but kotlin-test-junit5 targets
+# the 5.x API; moving to 6 is a deliberate change, not a version bump.
+junit = "5.14.4"
+coroutines = "1.11.0"
+
+[libraries]
+muzei-api = { module = "com.google.android.apps.muzei:muzei-api", version.ref = "muzeiApi" }
+
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+# No kotlin-android alias on purpose; see the root build.gradle.kts.
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

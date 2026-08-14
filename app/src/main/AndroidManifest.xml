@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Components arrive with their own tickets: the art provider (34fd4c), the
+       notification listener service (a4e011), and the setup and settings
+       activities (05dc26, 4f10dc). -->
+
+</manifest>
