@@ -9,13 +9,21 @@ internal class RecordingPublisher : ArtworkPublisher {
     }
 }
 
-/** An in-memory stand-in for the persisted last album. */
-internal class InMemoryLastAlbum(private var token: String? = null) : LastAlbum {
-    val saved: String? get() = token
+/**
+ * An in-memory stand-in for the persisted last album.
+ *
+ * Takes a bare token, since most tests care only about which album was remembered;
+ * those that also care about the player or what it displaced use [savedAlbum].
+ */
+internal class InMemoryLastAlbum(token: String? = null) : LastAlbum {
+    private var album: PublishedAlbum? = token?.let { PublishedAlbum(it) }
 
-    override fun save(token: String) {
-        this.token = token
+    val saved: String? get() = album?.token
+    val savedAlbum: PublishedAlbum? get() = album
+
+    override fun save(album: PublishedAlbum) {
+        this.album = album
     }
 
-    override fun load(): String? = token
+    override fun load(): PublishedAlbum? = album
 }

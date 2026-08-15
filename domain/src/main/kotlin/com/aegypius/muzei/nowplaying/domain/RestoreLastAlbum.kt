@@ -15,13 +15,22 @@ class RestoreLastAlbum(
         // A remembered album that no longer parses is treated as no album at all:
         // better a sample than nothing, and the token format could have changed
         // since it was written.
-        val key = lastAlbum.load()?.let(AlbumKey::fromToken) ?: sample()
+        val showing = lastAlbum.load()
+        val remembered = showing?.token?.let(AlbumKey::fromToken)
+        val key = remembered ?: sample()
 
         publisher.publish(key, ArtworkUrl.of(key))
 
         // Remembered, including a sample. Muzei calls this whenever it wants more
         // artwork, not only the first time, so an unremembered sample would be
         // reshuffled on every call and turn the wallpaper into a slideshow.
-        lastAlbum.save(key.token)
+        //
+        // Restoring is not a new album arriving: what is put back keeps the player
+        // and the displaced album it already had, and a sample published in place of
+        // an unreadable record starts a fresh history rather than claiming to
+        // displace something nobody can read.
+        lastAlbum.save(
+            showing?.takeIf { remembered != null } ?: PublishedAlbum(key.token),
+        )
     }
 }

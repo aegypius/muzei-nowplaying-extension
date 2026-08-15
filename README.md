@@ -8,7 +8,8 @@ listening to on your home screen wallpaper.
 > a song replaces it with that album's cover. Delivered to the phone with Obtainium,
 > including in-place updates.
 >
-> Settings, reachable from Muzei's provider list, offer an unmetered-only switch.
+> Settings, reachable from Muzei's provider list, offer an unmetered-only switch and
+> a blocklist of apps that may not change the wallpaper.
 
 ## How it works
 
@@ -19,8 +20,9 @@ caches and renders it.
 
 The unit is the album, not the song — a full record plays as one stable wallpaper
 rather than changing every three minutes. When nothing is playing, the last cover
-stays. Podcasts, video and adverts simply miss in a music artwork catalogue and
-change nothing.
+stays. Podcasts, video and adverts usually miss in a music artwork catalogue and
+change nothing — but a video whose title happens to name a real record does not
+miss, which is why any app can be blocked from settings.
 
 ## Building and installing
 

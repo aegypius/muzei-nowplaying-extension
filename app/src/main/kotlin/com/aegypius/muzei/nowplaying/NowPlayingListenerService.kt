@@ -9,6 +9,7 @@ import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.service.notification.NotificationListenerService
 import android.util.Log
+import com.aegypius.muzei.nowplaying.domain.Player
 import com.aegypius.muzei.nowplaying.domain.PublishNowPlaying
 import com.aegypius.muzei.nowplaying.domain.SessionMetadata
 import com.aegypius.muzei.nowplaying.domain.WinningSession
@@ -34,7 +35,11 @@ class NowPlayingListenerService : NotificationListenerService() {
     // Keyed by the session's own token, not by its package: one app can own two
     // sessions at once, and collapsing them would leave the one that actually
     // plays unobserved.
-    private val winningSession = WinningSession<MediaSession.Token>()
+    private val winningSession = WinningSession<MediaSession.Token> { session ->
+        // Asked at the moment a session starts playing rather than remembered, so
+        // blocking a player takes effect on the very next thing it plays.
+        players.blocked().allows(playerOf(session))
+    }
     private val registered =
         mutableMapOf<MediaSession.Token, Pair<MediaController, MediaController.Callback>>()
     private var observingSessions = false
@@ -48,6 +53,7 @@ class NowPlayingListenerService : NotificationListenerService() {
     private lateinit var sessionManager: MediaSessionManager
     private lateinit var scope: CoroutineScope
     private lateinit var publishNowPlaying: PublishNowPlaying
+    private lateinit var players: PlayerDirectory
 
     private val activeSessionsChanged =
         MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
@@ -58,15 +64,14 @@ class NowPlayingListenerService : NotificationListenerService() {
         super.onCreate()
         sessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        players = PlayerDirectory(this)
         // Callbacks arrive on the main thread and setArtwork does database I/O, so
-        // the publish itself moves to the IO dispatcher.
-        // limitedParallelism(1) rather than plain IO: setArtwork replaces the whole
-        // table, so two publishes racing on different threads could leave the
-        // stale album as the winner.
+        // the publish itself moves off it. The dispatcher is shared with the settings
+        // screen rather than created here: see Publishing.
         publishNowPlaying = PublishNowPlaying(
             MuzeiArtworkPublisher(this),
             SharedPreferencesLastAlbum(this),
-            Dispatchers.IO.limitedParallelism(1),
+            Publishing.dispatcher,
             ConnectionPublishGate(this),
         )
     }
@@ -136,8 +141,34 @@ class NowPlayingListenerService : NotificationListenerService() {
             controller.registerCallback(callback)
         }
 
+        // Every player that owns a session is offered in settings, including one
+        // already blocked: the list is how a player is found in the first place, and
+        // a blocked player that vanished from it could never be unblocked.
+        remember(controllers.map { Player(it.packageName) })
+
         seedOwnership(controllers)
     }
+
+    /**
+     * Records the players seen, off the main thread: it reads the package manager
+     * and writes a cached icon to disk, while session callbacks arrive on the main
+     * thread. Serialised, because the list is read-modify-written and two overlapping
+     * session changes would otherwise lose an entry.
+     */
+    private fun remember(seen: List<Player>) {
+        scope.launch(Publishing.dispatcher) {
+            seen.forEach { players.remember(it) }
+        }
+    }
+
+    /**
+     * Which player a session belongs to, or null once it has been unregistered.
+     *
+     * Read from the registered controller rather than stored beside the token, so
+     * there is one place where a session's player is known.
+     */
+    private fun playerOf(session: MediaSession.Token): Player? =
+        registered[session]?.first?.packageName?.let(::Player)
 
     /**
      * Sessions already playing when watching starts have no state change left to
@@ -154,9 +185,14 @@ class NowPlayingListenerService : NotificationListenerService() {
         // Recorded so their next position tick is not mistaken for a fresh start.
         alreadyPlaying.forEach { playing += it.sessionToken }
 
+        // The most relevant session may belong to a blocked player, in which case
+        // ownership is refused and nothing is published. Falling through to the next
+        // one would be a different rule than the one that applies while running.
         val mostRelevant = alreadyPlaying.firstOrNull() ?: return
         winningSession.startedPlaying(mostRelevant.sessionToken)
-        publish(mostRelevant.metadata)
+        if (!winningSession.owns(mostRelevant.sessionToken)) return
+
+        publish(mostRelevant.metadata, playerOf(mostRelevant.sessionToken))
     }
 
     private fun unregister(session: MediaSession.Token) {
@@ -169,9 +205,9 @@ class NowPlayingListenerService : NotificationListenerService() {
 
     private fun unregisterAll() = registered.keys.toList().forEach { unregister(it) }
 
-    private fun publish(metadata: MediaMetadata?) {
+    private fun publish(metadata: MediaMetadata?, player: Player?) {
         val track = SessionMetadata.readTrack { key -> metadata?.getString(key) }
-        scope.launch { publishNowPlaying.publish(track) }
+        scope.launch { publishNowPlaying.publish(track, player) }
     }
 
     private inner class SessionCallback(
@@ -190,14 +226,18 @@ class NowPlayingListenerService : NotificationListenerService() {
             if (!isPlaying || wasPlaying) return
 
             winningSession.startedPlaying(session)
-            publish(controller.metadata)
+            // A blocked player is refused ownership, so this is also what stops it
+            // publishing. One check, in one place, rather than a second gate here.
+            if (!winningSession.owns(session)) return
+
+            publish(controller.metadata, playerOf(session))
         }
 
         override fun onMetadataChanged(metadata: MediaMetadata?) {
             // Pausing does not surrender ownership: the winner is whoever started
             // playing most recently. See docs/adr/0003-sticky-when-idle.md.
             if (!winningSession.owns(session)) return
-            publish(metadata)
+            publish(metadata, playerOf(session))
         }
 
         override fun onSessionDestroyed() {

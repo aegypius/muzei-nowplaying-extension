@@ -25,4 +25,15 @@
     connection. One lookup per album, not per track.</string>
   <string name="settings_unmetered_summary_on">Artwork is looked up only on an
     unmetered connection. The wallpaper keeps the last cover elsewhere.</string>
+
+  <string name="settings_players_title">Blocked apps</string>
+  <string name="settings_players_summary">Stop an app changing the wallpaper. Useful
+    for video, where a title that happens to name a real record puts up the wrong
+    cover.</string>
+  <string name="settings_players_empty_title">No apps seen yet</string>
+  <string name="settings_players_empty_summary">An app appears here once it has
+    media open, whether or not it is playing.</string>
+  <string name="settings_players_clear_title">Clear this list</string>
+  <string name="settings_players_clear_summary">Forgets the apps listed above. Apps
+    you have blocked stay blocked, and stay listed so you can unblock them.</string>
 </resources>

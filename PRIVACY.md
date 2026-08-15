@@ -26,7 +26,8 @@ something, that never happens again.
 ## What does not leave your device
 
 - Track titles. Only album artist and album are used in the lookup.
-- The list of apps you play music from.
+- The list of apps you play music from. It is kept on the device, as described
+  below, and is never sent anywhere.
 - Album art already present on your device — none is read, uploaded or scanned.
 - Anything at all while music is idle, with one exception: the sample album
   described above is looked up when Muzei asks for artwork and nothing has played.
@@ -49,10 +50,32 @@ What this app does with it:
 - It reads media session metadata — title, artist, album artist, album — and
   nothing else. The title is used for nothing today and is not transmitted.
 
+## What other apps this one can see
+
+Android hides installed apps from each other by default, and this app asks for one
+narrow exception: it can see apps that declare themselves as media apps, in the two
+ways Android provides for that. It uses this to show an app's name and icon in the
+settings list instead of a bare package name.
+
+It deliberately does not ask for the permission that would reveal every installed
+app. Media apps that declare neither of those two things stay invisible to it and
+are listed by their package name.
+
 ## What is stored on the device
 
 The most recent album artist and album, so the wallpaper can be restored after a
-restart.
+restart, along with the album shown before it and which app put the current one up.
+That second album is what returns when you block an app, and the app's name is what
+tells blocking which wallpaper to undo.
+
+Which apps have had media open, so they can be offered in the settings list, with
+each one's name and icon copied at the moment it is first seen — an app you later
+uninstall is still recognisable in the list. Clearing the list from settings removes
+all of that.
+
+Which apps you have blocked, which is kept when you clear the list — otherwise
+clearing would quietly unblock them — and is removed only by unblocking them or by
+clearing this app's data.
 
 Downloaded cover images are also cached, in this app's own private storage rather
 than Muzei's, because this app is what downloads them. Clearing this app's data

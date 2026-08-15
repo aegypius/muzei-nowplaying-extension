@@ -20,7 +20,12 @@ class PublishNowPlaying(
     private val dispatcher: CoroutineDispatcher,
     private val gate: PublishGate = PublishGate { true },
 ) {
-    suspend fun publish(track: Track) {
+    /**
+     * @param player which app is playing, so that blocking it later can put back
+     * the album this one displaces. Null when that is unknown, which costs only the
+     * ability to undo this particular publish.
+     */
+    suspend fun publish(track: Track, player: Player? = null) {
         // No artist of any kind means there is nothing to look up. Publishing a
         // meaningless request would replace good artwork with a miss.
         val key = AlbumKey.of(track) ?: return
@@ -33,7 +38,10 @@ class PublishNowPlaying(
             publisher.publish(key, ArtworkUrl.of(key))
             // Remembered after publishing, not before: nothing should be restored
             // that was never shown.
-            lastAlbum.save(key.token)
+            val showing = lastAlbum.load()
+            lastAlbum.save(
+                showing?.replacedBy(key.token, player) ?: PublishedAlbum(key.token, player),
+            )
         }
     }
 }

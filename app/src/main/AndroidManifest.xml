@@ -11,6 +11,26 @@
        the process on every publish. The predecessor declared it too. -->
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+  <!-- Package visibility hides other apps from this one, and holding a
+       MediaController grants no exemption: automatic visibility covers this app's
+       own package, forceQueryable system packages, the installer, and apps that
+       interact with this app's components. A media session is none of those, so
+       without this the settings list could only ever show package names.
+
+       These two intents are how media apps are conventionally discovered. An app
+       declaring neither stays invisible and is listed by package name, which is
+       still unambiguous and still blockable. QUERY_ALL_PACKAGES would cover
+       everything and is deliberately not used: it grants sight of the entire
+       installed-app inventory, which PRIVACY.md says this app does not have. -->
+  <queries>
+    <intent>
+      <action android:name="android.media.browse.MediaBrowserService" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.MEDIA_BUTTON" />
+    </intent>
+  </queries>
+
   <!-- Declared once, on the application. Muzei's provider list calls
        providerInfo.loadIcon, which falls back to the application icon, so an
        android:icon on the provider would be the same picture stated twice. There

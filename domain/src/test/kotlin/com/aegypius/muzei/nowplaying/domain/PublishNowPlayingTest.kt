@@ -71,6 +71,25 @@ class PublishNowPlayingTest {
     }
 
     @Test
+    fun `remembers which player published it, and what that displaced`() = runTest {
+        val publisher = RecordingPublisher()
+        val lastAlbum = InMemoryLastAlbum()
+        val dispatcher = CountingDispatcher(StandardTestDispatcher(testScheduler))
+        val publish = PublishNowPlaying(publisher, lastAlbum, dispatcher)
+        val spotify = Player("com.spotify.music")
+        val youtube = Player("com.google.android.youtube")
+
+        publish.publish(track(albumArtist = "Amenra", album = "Mass VI"), spotify)
+        val massVI = lastAlbum.saved
+        publish.publish(track(artist = "Amenra"), youtube)
+
+        // Blocking YouTube has to know both that YouTube put this up and what it
+        // replaced, or there is nothing to put back.
+        assertEquals(youtube, lastAlbum.savedAlbum?.player)
+        assertEquals(massVI, lastAlbum.savedAlbum?.displaced)
+    }
+
+    @Test
     fun `a closed gate publishes nothing and remembers nothing`() = runTest {
         val publisher = RecordingPublisher()
         val lastAlbum = InMemoryLastAlbum()

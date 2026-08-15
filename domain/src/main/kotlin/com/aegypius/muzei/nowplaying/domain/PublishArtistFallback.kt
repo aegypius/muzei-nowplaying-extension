@@ -19,6 +19,12 @@ class PublishArtistFallback(
         val artistOnly = key.withoutAlbum()
 
         publisher.publish(artistOnly, next)
-        lastAlbum.save(artistOnly.token)
+        // The player and the displaced album carry over: this is a repair of the
+        // publish that just missed, not a new album arriving, so blocking that
+        // player should still put back what it originally took.
+        val showing = lastAlbum.load()
+        lastAlbum.save(
+            showing?.copy(token = artistOnly.token) ?: PublishedAlbum(artistOnly.token),
+        )
     }
 }

@@ -12,4 +12,14 @@
     android:title="@string/settings_unmetered_title"
     app:iconSpaceReserved="false" />
 
+  <!-- The entries are built in code from the players seen playing, so this names
+       the fragment rather than nesting a screen: there is nothing to declare here
+       until something has played. -->
+  <Preference
+    android:fragment="com.aegypius.muzei.nowplaying.BlockedPlayersFragment"
+    android:key="blocked_players_screen"
+    android:summary="@string/settings_players_summary"
+    android:title="@string/settings_players_title"
+    app:iconSpaceReserved="false" />
+
 </PreferenceScreen>

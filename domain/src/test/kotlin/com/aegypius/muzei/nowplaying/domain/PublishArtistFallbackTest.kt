@@ -24,6 +24,22 @@ class PublishArtistFallbackTest {
     }
 
     @Test
+    fun `the retry keeps the player and the album it displaced`() {
+        val publisher = RecordingPublisher()
+        val spotify = Player("com.spotify.music")
+        val displaced = AlbumKey.of(track(albumArtist = "Amenra", album = "Mass VI"))!!
+        val store = InMemoryLastAlbum()
+        store.save(PublishedAlbum(key.token, spotify, displaced = displaced.token))
+
+        PublishArtistFallback(store, publisher).after(failedUrl = ArtworkUrl.of(key), key = key)
+
+        // A repair of the publish that just missed, not a new album arriving:
+        // blocking the player should still put back what it originally took.
+        assertEquals(spotify, store.savedAlbum?.player)
+        assertEquals(displaced.token, store.savedAlbum?.displaced)
+    }
+
+    @Test
     fun `publishes nothing when there is nothing left to try`() {
         val publisher = RecordingPublisher()
         val artistOnly = ArtworkUrl.of(key.withoutAlbum())
