@@ -71,7 +71,8 @@ tells blocking which wallpaper to undo.
 Which apps have had media open, so they can be offered in the settings list, with
 each one's name and icon copied at the moment it is first seen — an app you later
 uninstall is still recognisable in the list. Clearing the list from settings removes
-all of that.
+all of that, apart from the apps you have blocked, which keep their name and icon so
+they can still be recognised and unblocked.
 
 Which apps you have blocked, which is kept when you clear the list — otherwise
 clearing would quietly unblock them — and is removed only by unblocking them or by

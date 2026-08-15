@@ -35,5 +35,5 @@
     media open, whether or not it is playing.</string>
   <string name="settings_players_clear_title">Clear this list</string>
   <string name="settings_players_clear_summary">Forgets the apps listed above. Apps
-    you have blocked stay blocked, and stay listed so you can unblock them.</string>
+    you have blocked are kept, so you can still recognise and unblock them.</string>
 </resources>

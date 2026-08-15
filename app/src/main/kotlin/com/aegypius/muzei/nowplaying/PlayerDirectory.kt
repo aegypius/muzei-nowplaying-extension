@@ -96,19 +96,23 @@ class PlayerDirectory(private val context: Context) {
     }
 
     /**
-     * Forgets every player seen, along with the cached names and icons.
+     * Forgets the players seen, along with their cached names and icons.
      *
-     * Blocked players are deliberately kept: a blocklist that emptied itself when
-     * the list was tidied would silently start letting a blocked app through. They
-     * stay listed too, by [known], so blocking never becomes one-way.
+     * Blocked players are exempt, wholly. Keeping the blocklist while dropping the
+     * names behind it would leave a screen of bare package names to unblock from,
+     * which is the identity problem the cache exists to prevent — and clearing the
+     * blocklist itself would silently start letting a blocked app through.
      */
     fun forgetAll() {
-        // Read before the edit, since the label keys to remove are derived from it.
-        val seen = seen()
-        val editor = state.edit().remove(KEY_SEEN)
-        seen.forEach { editor.remove(labelKey(it)) }
+        // Read before the edit: what is removed is derived from both sets.
+        val blocked = blockedPackages()
+        val forgotten = seen() - blocked
+
+        val editor = state.edit().putStringSet(KEY_SEEN, blocked)
+        forgotten.forEach { editor.remove(labelKey(it)) }
         editor.apply()
-        icons.listFiles()?.forEach { it.delete() }
+
+        forgotten.forEach { File(icons, "$it.png").delete() }
     }
 
     private fun seen(): Set<String> = state.getStringSet(KEY_SEEN, null).orEmpty()
