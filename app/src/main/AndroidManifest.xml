@@ -11,7 +11,13 @@
        the process on every publish. The predecessor declared it too. -->
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+  <!-- Declared once, on the application. Muzei's provider list calls
+       providerInfo.loadIcon, which falls back to the application icon, so an
+       android:icon on the provider would be the same picture stated twice. There
+       is no android:roundIcon either: that exists for pre-26 legacy masking, which
+       minSdk 34 cannot reach. -->
   <application
+    android:icon="@mipmap/ic_launcher"
     android:label="@string/app_name"
     android:theme="@style/Theme.NowPlaying">
 

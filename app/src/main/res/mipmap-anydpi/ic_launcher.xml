@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One density-independent icon, and no raster fallback: minSdk is 34, so every
+     device that can install this app supports adaptive icons (API 26) and themed
+     icons (API 33). The legacy PNG mipmaps an icon usually ships with would be
+     dead weight, and binary files at that. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <background android:drawable="@drawable/ic_launcher_background" />
+  <foreground android:drawable="@drawable/ic_launcher_foreground" />
+  <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

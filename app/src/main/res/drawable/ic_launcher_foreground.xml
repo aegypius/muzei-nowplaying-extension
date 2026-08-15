@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The adaptive icon's foreground layer: a record, drawn as concentric circles.
+
+     Everything sits inside the centre 66dp of the 108dp canvas, so no mask can
+     clip it: the disc is radius 32 about (54,54), a diameter of 64, leaving 22
+     empty on each side. Two different insets apply to this canvas and only the
+     tighter one is a design constraint. A mask is cut from the centre 72, so 18
+     per side is never shown at all; the safe zone is the centre 66, because the
+     launcher may also translate this layer against the background as it animates.
+
+     Each circle is two arcs, which is how a VectorDrawable spells one: an arc
+     cannot describe a full turn, because its start and end points would coincide
+     and leave the sweep ambiguous. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="108dp"
+  android:height="108dp"
+  android:viewportWidth="108"
+  android:viewportHeight="108">
+
+  <path
+    android:fillColor="@color/ic_launcher_disc"
+    android:pathData="M22,54 a32,32 0 1,0 64,0 a32,32 0 1,0 -64,0" />
+
+  <!-- Two grooves. Stroked rather than filled, so they read as lines cut into the
+       disc rather than as rings drawn on top of it. -->
+  <path
+    android:pathData="M27,54 a27,27 0 1,0 54,0 a27,27 0 1,0 -54,0"
+    android:strokeColor="@color/ic_launcher_groove"
+    android:strokeWidth="1" />
+  <path
+    android:pathData="M31,54 a23,23 0 1,0 46,0 a23,23 0 1,0 -46,0"
+    android:strokeColor="@color/ic_launcher_groove"
+    android:strokeWidth="1" />
+
+  <!-- The label, and the only colour on the disc: at list size the grooves are
+       gone and this is what still says "record" rather than "dark circle". -->
+  <path
+    android:fillColor="@color/ic_launcher_label"
+    android:pathData="M42,54 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0" />
+
+  <!-- The spindle hole, painted in the background colour rather than left
+       transparent: this layer is masked and shifted independently of the
+       background, so a real hole would not stay aligned with what is behind it. -->
+  <path
+    android:fillColor="@color/ic_launcher_background"
+    android:pathData="M51.5,54 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0" />
+
+</vector>

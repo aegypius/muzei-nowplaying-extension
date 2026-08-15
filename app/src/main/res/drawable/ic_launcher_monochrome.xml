@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The themed-icon layer. The system ignores these colours and tints the shape
+     with the user's theme, so the record has to survive as a silhouette: one path
+     whose fill is cut by evenOdd rather than several coloured circles.
+
+     With concentric subpaths, evenOdd fills by crossing count, so an odd number of
+     enclosing circles fills and an even number does not. The four radii are
+     therefore not four features: 32 is the disc, 27 and 25.5 are the two edges of
+     a single groove, and 3 is the spindle hole.
+
+     Deliberately less detail than the colour layer, because a flat tint cannot
+     carry it. The second groove is dropped, the groove that remains is 1.5 wide
+     against 1, and the hole is radius 3 against 2.5, because at list size a tinted
+     feature narrower than about 1.5 vanishes into the fill. The label goes too:
+     with no colour to set it apart it would only read as a second hole. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="108dp"
+  android:height="108dp"
+  android:viewportWidth="108"
+  android:viewportHeight="108">
+
+  <path
+    android:fillColor="#000000"
+    android:fillType="evenOdd"
+    android:pathData="M22,54 a32,32 0 1,0 64,0 a32,32 0 1,0 -64,0
+                      M27,54 a27,27 0 1,0 54,0 a27,27 0 1,0 -54,0
+                      M28.5,54 a25.5,25.5 0 1,0 51,0 a25.5,25.5 0 1,0 -51,0
+                      M51,54 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+
+</vector>

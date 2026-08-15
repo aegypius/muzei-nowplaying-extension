@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+  <!-- The icon's palette. The interface takes its colours from
+       Theme.Material3.DayNight instead, so that it follows the system; these exist
+       because an icon cannot.
+
+       A light neutral background rather than a dark one: Muzei's provider list is
+       shown light or dark depending on the system theme, and a dark icon on a dark
+       list loses its outer edge. -->
+  <color name="ic_launcher_background">#F2F0EE</color>
+  <color name="ic_launcher_disc">#1B1B1B</color>
+  <color name="ic_launcher_groove">#2E2E2E</color>
+  <color name="ic_launcher_label">#C8552B</color>
+
+</resources>
