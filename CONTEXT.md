@@ -23,6 +23,20 @@ own handle, never by the app it belongs to: one app can own two at once.
 _Avoid_: active session, current session — several sessions are active at once,
 which is the whole reason the term exists.
 
+**Player**:
+The app a media session belongs to, identified by its package name. Several
+players can be alive at once and a player can own more than one session, which is
+why the winning session is never identified by its player.
+_Avoid_: source — reserved above, media app, session owner.
+
+**Blocked player**:
+A player the user has excluded. It never wins and never publishes, so a video
+whose title happens to name a real record cannot reach the wallpaper. Every player
+is allowed until blocked; blocking is a judgement about an app, not about what it
+happens to be playing.
+_Avoid_: banned, muted, ignored — the last is untrue, since a blocked player is
+still watched closely enough to be listed.
+
 **Track**:
 One song's metadata as a media session reports it: title, artist, album artist,
 album. The raw input, before it is reduced to an album key.
@@ -54,6 +68,11 @@ The check made at the moment of publishing, which can refuse it. Currently one
 question — whether the connection is one the user is willing to spend. It applies to
 music you play, not to Muzei asking for artwork itself.
 _Avoid_: filter, throttle — it neither transforms nor delays, it declines.
+
+**Displaced album**:
+The Now Playing that the current one replaced. Kept so that blocking a player can
+put back what it took, rather than leaving the wrong wallpaper up until something
+else plays. Exactly one step of history, not a list.
 
 **Miss**:
 The artwork service having nothing for an album key. A miss is ordinary and
