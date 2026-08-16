@@ -34,6 +34,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The only checkout in any workflow that keeps its token: the pin step
+          # below pushes a commit with it. Every other workflow sets this false.
+          persist-credentials: true
 
       - name: Log in to the registry
         env:
