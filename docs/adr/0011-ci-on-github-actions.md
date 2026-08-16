@@ -103,6 +103,13 @@ carrying two planted defects — trailing whitespace and a failing test. Both jo
 failed, each for its own reason, which is what distinguishes a check from a
 decoration. The pull request was closed unmerged and the branch deleted.
 
+The `codeEpoch` rule was proved the same way, on a second throwaway pull request
+that raised the value and was committed with `--no-verify`. CI refused it, naming
+the old and new values. The build refused it as well, independently: the epoch was
+in the future, so the computed `versionCode` would have been negative. Two gates
+caught one mistake, which is the right number for a mistake that is only
+recoverable by uninstalling the app.
+
 See [ADR-0007](./0007-per-runtime-container-flags.md) for why the image is built
 the way it is. Signing and publishing an installable build is a separate workflow,
 not yet written, and is the one that will hold a secret.
