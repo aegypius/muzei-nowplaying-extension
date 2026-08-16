@@ -59,17 +59,20 @@ jobs:
 
       # Inside the container, so the JDK and Android SDK are the pinned ones. The
       # Gradle home is set explicitly because the image's own is outside the
-      # workspace and belongs to a different user than the one CI runs as.
+      # workspace, where a container job cannot rely on it persisting or on the
+      # ownership it was built with.
       - name: Run the tests
         env:
           GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-ci
         run: ./gradlew --console=plain test
 
-  # On the runner rather than in the toolchain image, and deliberately so: the
-  # image has no python3 and no git, which three of these jobs need, and adding
-  # them would grow the image every build pulls for tools no build uses. The
-  # checks themselves are not duplicated -- lefthook.toml defines them once, and
-  # this runs that file.
+  # On the runner rather than in the toolchain image, and deliberately so. The
+  # image carries none of what these need: no python3 (the TOML and XML checks),
+  # no git (the codeEpoch check), and neither lefthook, hadolint nor cog. Locally
+  # those run from the host as git hooks, so the image was never their home, and
+  # adding five tools to an image every build pulls buys only symmetry. What is not
+  # duplicated is the definitions: lefthook.toml declares them once, and this runs
+  # that file.
   checks:
     runs-on: ubuntu-latest
     permissions:
@@ -87,14 +90,18 @@ jobs:
           set -eu
           bin="$RUNNER_TEMP/bin"
           mkdir -p "$bin"
+          releases=https://github.com/
 
-          curl -fsSL "https://github.com/evilmartians/lefthook/releases/download/v${LEFTHOOK_VERSION}/lefthook_${LEFTHOOK_VERSION}_Linux_x86_64" \
-            -o "$bin/lefthook"
-          curl -fsSL "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-linux-x86_64" \
-            -o "$bin/hadolint"
+          lefthook="lefthook_${LEFTHOOK_VERSION}_Linux_x86_64"
+          curl -fsSL -o "$bin/lefthook" \
+            "${releases}evilmartians/lefthook/releases/download/v${LEFTHOOK_VERSION}/$lefthook"
+          hadolint=hadolint-linux-x86_64
+          curl -fsSL -o "$bin/hadolint" \
+            "${releases}hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/$hadolint"
           chmod +x "$bin/lefthook" "$bin/hadolint"
 
-          curl -fsSL "https://github.com/cocogitto/cocogitto/releases/download/${COG_VERSION}/cocogitto-${COG_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+          cog="cocogitto-${COG_VERSION}-x86_64-unknown-linux-musl.tar.gz"
+          curl -fsSL "${releases}cocogitto/cocogitto/releases/download/${COG_VERSION}/$cog" \
             | tar -xz -C "$bin" --strip-components=1 --wildcards '*/cog'
 
           echo "$bin" >> "$GITHUB_PATH"
@@ -109,8 +116,11 @@ jobs:
           hadolint --version
           cog --version
 
-      # --all-files, because there is no staged set here. Every job in the file is
-      # written to survive an empty file list for the same reason.
+      # --all-files, because a fresh checkout stages nothing.
+      #
+      # One job cannot fail here, and it is worth knowing which: code-epoch-not-raised
+      # compares the staged version.properties against HEAD, which after a checkout
+      # are the same blob. Its gate is the commit hook. See ADR-0005 and ADR-0011.
       - name: Run the pre-commit checks
         run: lefthook run pre-commit --all-files
 

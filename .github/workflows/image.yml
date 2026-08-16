@@ -17,6 +17,14 @@ on:
 # Nothing is granted by default; each job asks for what it needs.
 permissions: {}
 
+# Never two at once, and never cancelled. This workflow publishes an image and then
+# commits the digest that points at it; interrupting it between the two, or letting
+# a second run race the first to push that commit, is how the image ends up
+# published but unpinned -- the one state this scheme must not reach.
+concurrency:
+  group: toolchain-image
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -30,7 +38,8 @@ jobs:
       - name: Log in to the registry
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: echo "$TOKEN" | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+          ACTOR: ${{ github.actor }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
 
       # A moving tag is pushed as well as the digest, but nothing consumes it:
       # it exists so the package page shows something readable. What CI pulls is
@@ -42,7 +51,11 @@ jobs:
           image="ghcr.io/${GITHUB_REPOSITORY,,}/toolchain"
           docker build -f Containerfile --target toolchain -t "$image:latest" .
           docker push "$image:latest"
-          digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$image:latest")
+          # Selected by name rather than by position: RepoDigests carries one entry
+          # per repository the image is tagged into, in no guaranteed order.
+          digest=$(docker inspect --format '{{join .RepoDigests "\n"}}' "$image:latest" \
+            | grep "^$image@" | head -1)
+          test -n "$digest"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           echo "Pushed \`$digest\`" >> "$GITHUB_STEP_SUMMARY"
 
@@ -67,4 +80,8 @@ jobs:
 
           Published by the toolchain image workflow after a Containerfile change.
           Every later run builds and tests with this exact image."
+
+          # Rebase before pushing: main may have moved while the image built, and a
+          # rejected push here would leave the image published but unpinned.
+          git pull --rebase
           git push

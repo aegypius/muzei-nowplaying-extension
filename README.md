@@ -28,7 +28,8 @@ miss, which is why any app can be blocked from settings.
 
 Everything runs in a container; the only host requirements are `docker` or
 `podman`, and `just`. Run `just --list` for the current recipes — the justfile is
-the source of truth, not this file.
+the source of truth, not this file. CI runs the same tests in the same image; see
+[CONTRIBUTING.md](./CONTRIBUTING.md).
 
 There is no Play Store listing and no `adb`. Builds are release-signed and served
 over HTTP on your local network, and [Obtainium](https://obtainium.imranr.dev/)

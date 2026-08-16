@@ -3,7 +3,7 @@ status: accepted
 date: 2026-08-16
 ---
 
-# Run CI in the toolchain image this repository publishes
+# Build in the toolchain image this repository publishes, check beside it
 
 ## Context and Problem Statement
 
@@ -45,9 +45,9 @@ change between two runs of the same commit, with nothing in the history saying s
 
 **The checks do not run in that image.** They run on the runner. This contradicts
 the obvious symmetry and is deliberate: the image has no `python3` and no `git`,
-which the TOML, XML and codeEpoch checks need, and neither does `lefthook` or
-`hadolint` live there. Adding four tools to an image every build pulls, for tools
-no build uses, costs more than it buys — the developer machine runs those checks
+which the TOML, XML and codeEpoch checks need, and neither `lefthook`, `hadolint` nor
+`cog` lives there. Adding five tools to an image every build pulls, for tools no
+build uses, costs more than it buys — the developer machine runs those checks
 from the host too, as git hooks, so the image was never their home. What matters is
 that the *definitions* are not duplicated: CI runs `lefthook run pre-commit
 --all-files` against the same `lefthook.toml` the hooks use, and the tool versions
@@ -66,10 +66,33 @@ are pinned in the workflow to the ones installed locally.
 * Bad, because the check tool versions are pinned in a second place. `lefthook.toml`
   defines *what* runs; the workflow decides *which build* of each tool runs, and
   upgrading locally without upgrading there is a way for the two to disagree.
+* Bad, because one check silently does not apply in CI. `code-epoch-not-raised`
+  compares the staged `version.properties` against `HEAD`, which are the same blob
+  after a checkout, so it always passes there. Its real gate is the commit hook, and
+  the check guarding ADR-0005's unrecoverable failure is therefore the one CI cannot
+  help with.
+* Bad, because the digest commit does not itself get verified. A push made with the
+  automatic `GITHUB_TOKEN` does not trigger workflows, by design, so the commit
+  pinning a new toolchain is first exercised by whatever is pushed after it.
+* Bad, because the test job runs a pull request's own Gradle scripts inside the
+  container, with a token that can read packages. The repository is private, so that
+  is limited to people who could push anyway, but making it public would change the
+  calculation.
 * Bad, because the test job checks out through the REST API rather than cloning:
   the image has no `git`. The build does not need `.git` — the version comes from
   `version.properties` — but anything later that does would have to add `git` to
   the image or move.
+
+## Confirmed
+
+Both workflows have run. The image workflow published the toolchain and committed
+its own digest, unattended. A push to `main` then ran green: the checks in 8
+seconds, the tests in 2m37s inside that digest.
+
+Red was confirmed deliberately rather than assumed, on a throwaway pull request
+carrying two planted defects — trailing whitespace and a failing test. Both jobs
+failed, each for its own reason, which is what distinguishes a check from a
+decoration. The pull request was closed unmerged and the branch deleted.
 
 See [ADR-0007](./0007-per-runtime-container-flags.md) for why the image is built
 the way it is. Signing and publishing an installable build is a separate workflow,
