@@ -118,11 +118,35 @@ jobs:
 
       # --all-files, because a fresh checkout stages nothing.
       #
-      # One job cannot fail here, and it is worth knowing which: code-epoch-not-raised
-      # compares the staged version.properties against HEAD, which after a checkout
-      # are the same blob. Its gate is the commit hook. See ADR-0005 and ADR-0011.
+      # One job in here cannot fail: code-epoch-not-raised compares the staged
+      # version.properties against HEAD, which after a checkout are the same blob.
+      # The step below asks the same question of two commits instead.
       - name: Run the pre-commit checks
         run: lefthook run pre-commit --all-files
+
+      # The rule that guards the one unrecoverable mistake, applied where the hook
+      # cannot reach: a commit made with --no-verify, or pushed from a clone with no
+      # hooks installed. Same script as the hook, a different pair of objects.
+      # See ADR-0005.
+      - name: Check that codeEpoch was not raised
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -eu
+          base=$BASE
+          # A first push to a branch reports an all-zero "before".
+          case "$base" in
+            '' | 0000000000000000000000000000000000000000)
+              base=$(git rev-parse "$HEAD_SHA^" 2>/dev/null || true)
+              ;;
+          esac
+          if [ -z "$base" ]; then
+            echo "no earlier commit to compare against"
+            exit 0
+          fi
+          sh tools/check-code-epoch.sh \
+            "$base:version.properties" "$HEAD_SHA:version.properties"
 
       # The commit messages are what cocogitto derives the version and changelog
       # from, so a malformed one is a lost release note. The commit-msg hook

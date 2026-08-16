@@ -27,10 +27,10 @@ place it is hardest to debug.
 
 ## Decision Outcome
 
-Chosen: **publish the toolchain to GHCR and pin it by digest**. A workflow builds
-`Containerfile`'s `toolchain` target when that file changes, pushes it, and commits
-the resulting digest to `.github/toolchain-image`. The test job runs in that exact
-image.
+Chosen: **publish the toolchain to GHCR and run the CI jobs in it**, referenced by
+digest. A workflow builds `Containerfile`'s `toolchain` target when that file
+changes, pushes it, and commits the resulting digest to `.github/toolchain-image`.
+Jobs then run in that exact image.
 
 Rebuilding the image per run was rejected as slow: it is 1.57 GB and downloads the
 Android SDK before the first test runs. The runner's own SDK was rejected because
@@ -43,34 +43,43 @@ This is also why a mutable `:latest` tag is not consumed, though one is pushed s
 the package page shows something readable — a moving tag means the toolchain can
 change between two runs of the same commit, with nothing in the history saying so.
 
-**The checks do not run in that image.** They run on the runner. This contradicts
-the obvious symmetry and is deliberate: the image has no `python3` and no `git`,
-which the TOML, XML and codeEpoch checks need, and neither `lefthook`, `hadolint` nor
-`cog` lives there. Adding five tools to an image every build pulls, for tools no
-build uses, costs more than it buys — the developer machine runs those checks
-from the host too, as git hooks, so the image was never their home. What matters is
-that the *definitions* are not duplicated: CI runs `lefthook run pre-commit
---all-files` against the same `lefthook.toml` the hooks use, and the tool versions
-are pinned in the workflow to the ones installed locally.
+### Amended during implementation: the checks run beside the image, not in it
+
+The decision above was "run the jobs in it", and the tests do. The checks do not,
+and that is a departure from what was decided, accepted on review on 2026-08-16.
+
+It was found by measurement rather than chosen up front: the published image has no
+`python3` and no `git`, which the TOML, XML and codeEpoch checks need, and neither
+`lefthook`, `hadolint` nor `cog` is installed there. Putting the checks in the image
+therefore meant adding five tools to an image every build pulls, for tools no build
+uses. The developer machine runs those checks from the host as git hooks, so the
+image was never their home either.
+
+What the original decision was protecting is kept: the check *definitions* are not
+duplicated, because CI runs `lefthook run pre-commit --all-files` against the same
+`lefthook.toml` the hooks use. What is given up is version parity by construction —
+the tool versions are pinned in the workflow, by hand, to the ones installed
+locally.
 
 ## Consequences
 
 * Good, because a test failing in CI fails the same way locally, in the same image.
 * Good, because a check added to `lefthook.toml` is enforced in CI with no second
   edit, and cannot drift out of two files.
-* Good, because no job in this workflow uses a configured secret. The only token is
-  the automatic `GITHUB_TOKEN`, needed to pull a package from a private repository.
+* Good, because nothing here needs a secret of this project's own. The only token
+  is the automatic `GITHUB_TOKEN`, which a private repository's package cannot be
+  pulled without.
 * Bad, because the toolchain workflow pushes to `main`. It is the narrowest write
   the scheme needs, and it runs only when the `Containerfile` changes, but it is a
   workflow with `contents: write` and that is worth knowing.
 * Bad, because the check tool versions are pinned in a second place. `lefthook.toml`
   defines *what* runs; the workflow decides *which build* of each tool runs, and
   upgrading locally without upgrading there is a way for the two to disagree.
-* Bad, because one check silently does not apply in CI. `code-epoch-not-raised`
-  compares the staged `version.properties` against `HEAD`, which are the same blob
-  after a checkout, so it always passes there. Its real gate is the commit hook, and
-  the check guarding ADR-0005's unrecoverable failure is therefore the one CI cannot
-  help with.
+* Bad, because one rule now has two callers. `code-epoch-not-raised` cannot fail in
+  CI, because it compares the staged `version.properties` against `HEAD`, and a
+  checkout makes those the same blob. CI therefore compares two commits instead. The
+  rule itself is in `tools/check-code-epoch.sh` and both callers use it, so only the
+  pair of objects differs — but a reader must know that two callers exist.
 * Bad, because the digest commit does not itself get verified. A push made with the
   automatic `GITHUB_TOKEN` does not trigger workflows, by design, so the commit
   pinning a new toolchain is first exercised by whatever is pushed after it.

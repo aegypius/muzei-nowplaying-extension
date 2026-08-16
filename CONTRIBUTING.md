@@ -61,13 +61,6 @@ hooks run. CI does not maintain its own list: it runs `lefthook run pre-commit
 enforced there without a second edit. It also runs `cog check` over the whole
 history, which catches a message committed with the hook skipped.
 
-One check does not carry over, and it happens to be the one guarding the worst
-failure. `code-epoch-not-raised` compares the staged `version.properties` against
-`HEAD`, and after a fresh checkout those are the same blob, so it can never fail in
-CI. The commit hook is its only gate — which is the reason not to reach for
-`--no-verify` on that file. See
-[ADR-0005](./docs/adr/0005-elapsed-seconds-version-code.md).
-
 The tests run inside the pinned toolchain image, published to the registry by a
 separate workflow and referenced by digest in `.github/toolchain-image`, so CI
 compiles with the image this repository builds rather than whatever a runner
