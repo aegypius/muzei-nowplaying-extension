@@ -1,0 +1,70 @@
+# Publishes the build toolchain so CI compiles with the same image as the
+# developer machine. See docs/adr/0011-ci-on-github-actions.md.
+#
+# Runs only when the Containerfile changes, because nothing else can change what
+# the image contains: the SDK versions inside it are pinned there, and the base
+# image is pinned by digest.
+name: toolchain image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Containerfile
+      - .github/workflows/image.yml
+  workflow_dispatch:
+
+# Nothing is granted by default; each job asks for what it needs.
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      # Pushing the image, and committing the digest it produced.
+      packages: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Log in to the registry
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$TOKEN" | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+
+      # A moving tag is pushed as well as the digest, but nothing consumes it:
+      # it exists so the package page shows something readable. What CI pulls is
+      # the digest written below.
+      - name: Build and push the toolchain
+        id: push
+        run: |
+          set -eu
+          image="ghcr.io/${GITHUB_REPOSITORY,,}/toolchain"
+          docker build -f Containerfile --target toolchain -t "$image:latest" .
+          docker push "$image:latest"
+          digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$image:latest")
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Pushed \`$digest\`" >> "$GITHUB_STEP_SUMMARY"
+
+      # Committed rather than printed for someone to copy: an image that has been
+      # published but not pinned is one nothing uses, and the difference would be
+      # invisible. The commit is the record of which toolchain built what.
+      - name: Pin the digest
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -eu
+          if [ "$(cat .github/toolchain-image)" = "$DIGEST" ]; then
+            echo "already pinned to this digest"
+            exit 0
+          fi
+
+          echo "$DIGEST" > .github/toolchain-image
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/toolchain-image
+          git commit -m "chore: pin the toolchain image to a new digest
+
+          Published by the toolchain image workflow after a Containerfile change.
+          Every later run builds and tests with this exact image."
+          git push

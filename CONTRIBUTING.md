@@ -49,6 +49,24 @@ This is not decoration. `cog` derives the next semantic version from commit type
 and generates `CHANGELOG.md` from them, so a lazily-typed message is a lost
 changelog entry.
 
+## Continuous integration
+
+Every push to `main` and every pull request runs the tests and the same checks the
+hooks run. CI does not maintain its own list: it runs `lefthook run pre-commit
+--all-files` against this repository's `lefthook.toml`, so a check added here is
+enforced there without a second edit. It also runs `cog check` over the whole
+history, which catches a message committed with the hook skipped.
+
+The tests run inside the pinned toolchain image, published to the registry by a
+separate workflow and referenced by digest in `.github/toolchain-image`, so CI
+compiles with the image this repository builds rather than whatever a runner
+happens to have. Change the `Containerfile` and that workflow republishes the image
+and commits the new digest.
+
+The checks run on the runner rather than in that image, because they need `python3`
+and `git`, which a build toolchain has no other reason to carry. See
+[ADR-0011](./docs/adr/0011-ci-on-github-actions.md).
+
 Write the *why* in the body, especially when removing something. The single most
 useful artefact in this project's predecessor was a changelog that explained why
 features were deleted; that is where several of the ADRs here came from.
