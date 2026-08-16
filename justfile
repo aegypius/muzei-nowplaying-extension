@@ -139,12 +139,6 @@ keystore:
     echo "created {{keystore}} (mode 600)"
     echo "now set alias and storePass in keystore.properties"
 
-# The order is load-bearing, not stylistic. cog bump writes the new semantic
-# version into version.properties, so anything built before it carries the old
-# version while the tag carries the new one. Hence: test, then tag, then build
-# from the bumped file. `&&` post-dependencies give exactly that sequence, and a
-# failed bump skips the build rather than shipping a mislabelled artifact.
-
 # Called by cocogitto's pre-bump hook, never by hand: this line is generated output,
 # and ADR-0005 explains why editing it is editing build output. Private so that
 # `just --list` does not advertise a way to do the one thing the docs forbid.
@@ -157,6 +151,21 @@ keystore:
 _set-version version:
     sed -i 's/^name = .*/name = {{version}}/' version.properties
 
-# Cut a release: test, bump the version and changelog, then build.
-release: test && build
+# No build here any more. CI builds the tag, and it checks out the tag, so it can
+# only ever build the bumped version -- which retires the ordering hazard this
+# recipe used to work around. `just build` still exists for a build you want now,
+# without cutting a release.
+#
+# The push is here and not in a cog hook. `cog bump` on its own must stay local: it
+# is a reasonable thing to run by hand, and a hook would make it reach the remote
+# without being asked. `just release` is the recipe that means "publish this", so it
+# is the one that pushes.
+#
+# Two pushes rather than `--follow-tags`, which pushes only annotated tags. The
+# commit goes first: a tag whose commit the remote does not have is rejected.
+
+# Cut a release: test, then bump and push. CI signs and publishes the tag.
+release: test
     cog bump --auto
+    git push
+    git push --tags

@@ -20,6 +20,10 @@ ignore_merge_commits = true
 # from a subdirectory -- an inline sed was measured failing there.
 pre_bump_hooks = ["just _set-version {{version}}"]
 
+# No post_bump_hooks, on purpose. `cog bump` is a command you can run by itself, and
+# a hook here would make it push to the remote without being asked. The push belongs
+# to `just release`, which is the recipe that means "publish this".
+
 [changelog]
 path = "CHANGELOG.md"
 

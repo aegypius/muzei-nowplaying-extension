@@ -117,15 +117,25 @@ line by hand; edit commit messages instead. The `codeEpoch` constant in the same
 file *is* hand-maintained, and must never be raised — see
 [ADR-0005](./docs/adr/0005-elapsed-seconds-version-code.md).
 
-Bumping does not build anything. Every build is release-signed and installable
-already, so a bump only records that the semantic version moved. Building and
-serving are separate recipes.
+`just release` runs the tests, bumps, and pushes the commit and the tag. CI then
+signs the tag and publishes a GitHub Release, with the APK attached and the
+changelog for that version as the body.
 
-To get a build onto a phone: build, then serve the output directory, then let
-Obtainium pull from it. The server publishes on all interfaces, but a host firewall
-can still block it — if the phone cannot reach the port, check that before
-suspecting Obtainium. The served directory is pruned to the last few builds so
-there is always a rollback target.
+`cog bump` on its own stays local. It does not push, and there is no cog hook that
+does, so running it by hand never reaches the remote. `just release` is the command
+that means "publish this".
+
+There are two ways to get a build onto a phone, and they coexist:
+
+- **A release.** Obtainium tracks the repository and installs the Release asset.
+- **An untagged build.** `just build`, then serve the output directory, then let
+  Obtainium pull from it. The server publishes on all interfaces, but a host
+  firewall can still block it — if the phone cannot reach the port, check that
+  before suspecting Obtainium. The served directory is pruned to the last few
+  builds so there is always a rollback target.
+
+Both routes are safe to mix, because `versionCode` is elapsed seconds: a build made
+later always outranks one made earlier, whichever machine made it.
 
 ## Decisions
 

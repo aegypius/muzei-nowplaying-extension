@@ -1,0 +1,197 @@
+# Signs a release APK and publishes it, on a tag.
+#
+# This is the only workflow that touches the signing key. Read
+# docs/adr/0012-signed-releases-on-tags.md before changing it: the key cannot be
+# rotated, because Obtainium installs an update in place only while the signature
+# is unchanged.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+# There is deliberately no pull_request trigger here, and there must never be one.
+# A pull request from a fork receives no secrets, but a workflow that runs on pull
+# requests and reads the key is one configuration mistake away from handing it out.
+permissions: {}
+
+# One release at a time. Two tags pushed together would race to publish, and the
+# second would find the first's release already present.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  # The certificate every install so far was signed with. A build that does not
+  # match this cannot update an installed app: Android refuses a signature change,
+  # and the only recovery is uninstalling. See ADR-0004.
+  RELEASE_CERT_SHA256: d3b0ff9214f080c6a5f677ded019451ce89a597f207cc9feaf64504d4539327a
+  COG_VERSION: 7.0.0
+
+jobs:
+  # Same pin as verify.yml, read the same way: a job container is resolved before
+  # any step runs, so the file cannot be read from inside the job that uses it.
+  toolchain:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      image: ${{ steps.pin.outputs.image }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: pin
+        run: echo "image=$(cat .github/toolchain-image)" >> "$GITHUB_OUTPUT"
+
+  # Verification first, and in its own job, so that a failing test stops the release
+  # before the key is ever decoded.
+  test:
+    needs: toolchain
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ${{ needs.toolchain.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run the tests
+        env:
+          GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-ci
+        run: ./gradlew --console=plain test
+
+  build:
+    needs: [toolchain, test]
+    runs-on: ubuntu-latest
+    # The secrets live on this environment, not on the repository, so a workflow
+    # running from a branch cannot read them.
+    environment: release
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ${{ needs.toolchain.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # The key exists for the length of this step and no longer. Decode, build,
+      # delete -- the trap covers the failing path, where a return would not.
+      #
+      # It is written to RUNNER_TEMP rather than the workspace: upload-artifact
+      # globs the workspace, actions/cache would persist it across runs, and
+      # container mounts reach it. umask 077 keeps it unreadable to anything else on
+      # the machine for the seconds it exists.
+      #
+      # The secrets are on this step, not on the job, so no other step has them in
+      # its environment. They are read from variables rather than interpolated into
+      # the command line, where ps would show them.
+      - name: Assemble the signed release
+        env:
+          GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-ci
+          KEYSTORE_BASE64: ${{ secrets.NOWPLAYING_KEYSTORE_BASE64 }}
+          NOWPLAYING_KEYSTORE_PASSWORD: ${{ secrets.NOWPLAYING_KEYSTORE_PASSWORD }}
+          NOWPLAYING_KEYSTORE_ALIAS: ${{ secrets.NOWPLAYING_KEYSTORE_ALIAS }}
+        run: |
+          set -eu
+          keystore="$RUNNER_TEMP/release.jks"
+          trap 'shred -u "$keystore" 2>/dev/null || rm -f "$keystore"' EXIT
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$keystore"
+
+          NOWPLAYING_KEYSTORE="$keystore" ./gradlew --console=plain assembleRelease
+
+      # Belt and braces. On a GitHub-hosted runner this is defence in depth rather
+      # than erasure: SSD wear levelling, thin provisioning and journaling all defeat
+      # an overwrite guarantee, and the virtual machine is destroyed at the end of
+      # the job anyway. It earns its place on a self-hosted runner, and on the paths
+      # where the step above did not reach its own trap.
+      - name: Make sure the key is gone
+        if: always()
+        run: shred -u "$RUNNER_TEMP/release.jks" 2>/dev/null || true
+
+      # Refuses to publish a build that cannot update an installed app. A signature
+      # that does not match the installed one is not a bad release, it is an app
+      # nobody can upgrade to without uninstalling first.
+      - name: Check the signing certificate
+        run: |
+          set -eu
+          apksigner=""
+          for candidate in "$ANDROID_HOME"/build-tools/*/apksigner; do
+            [ -x "$candidate" ] && apksigner="$candidate"
+          done
+          test -n "$apksigner"
+
+          apk=app/build/outputs/apk/release/app-release.apk
+          actual=$("$apksigner" verify --print-certs "$apk" |
+            sed -n 's/.*SHA-256 digest: //p' | head -1)
+
+          if [ "$actual" != "$RELEASE_CERT_SHA256" ]; then
+            echo "signing certificate does not match the installed one."
+            echo "  expected $RELEASE_CERT_SHA256"
+            echo "  actual   $actual"
+            echo "Publishing this would break every in-place update. See ADR-0004."
+            exit 1
+          fi
+          echo "certificate matches"
+
+      # The same script the local build uses, so a Release asset and a locally
+      # served build carry the same name. Obtainium reads the version out of that
+      # name on the HTTP route.
+      - name: Name the artifact
+        run: sh tools/dist.sh 5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: dist/nowplaying-*.apk
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      # Creating the release and attaching the APK.
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # cog reads the history to build the changelog for this tag.
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+          path: dist
+
+      # cocogitto is not in the toolchain image, for the reason ADR-0011 gives, so
+      # the notes are produced out here rather than in the build job.
+      - name: Install cocogitto
+        run: |
+          set -eu
+          bin="$RUNNER_TEMP/bin"
+          mkdir -p "$bin"
+          cog="cocogitto-${COG_VERSION}-x86_64-unknown-linux-musl.tar.gz"
+          curl -fsSL \
+            "https://github.com/cocogitto/cocogitto/releases/download/${COG_VERSION}/$cog" \
+            | tar -xz -C "$bin" --strip-components=1 --wildcards '*/cog'
+          echo "$bin" >> "$GITHUB_PATH"
+
+      # The same text cog wrote into CHANGELOG.md for this version, so the release
+      # page and the file in the repository cannot disagree.
+      - name: Write the release notes
+        run: cog changelog --at "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            dist/nowplaying-*.apk
