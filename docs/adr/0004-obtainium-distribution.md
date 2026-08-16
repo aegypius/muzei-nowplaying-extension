@@ -5,6 +5,11 @@ date: 2026-08-14
 
 # Distribute through Obtainium over a local HTTP server
 
+> **Amended by [ADR-0012](./0012-signed-releases-on-tags.md).** A tagged release is
+> now also published as a GitHub Release, signed by CI. This document describes the
+> HTTP route, which still exists for builds that are not tagged, and everything it
+> says about signature stability, versionCode and link sorting still governs it.
+
 ## Context and Problem Statement
 
 The app is for one person on one phone. It still needs to get onto that phone
