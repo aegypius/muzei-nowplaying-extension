@@ -22,6 +22,13 @@ env:
   LEFTHOOK_VERSION: 2.1.10
   HADOLINT_VERSION: 2.15.1
   COG_VERSION: 7.0.0
+  # A version in a URL pins nothing: release tags can be re-pointed and assets
+  # replaced upstream. The download is trusted only if it hashes to these.
+  # lefthook and hadolint match the checksum files their releases publish;
+  # cocogitto publishes none, so its pin was computed from the asset itself.
+  LEFTHOOK_SHA256: f1de34ea0572363a525a2000d40f5a646733893ad28c924b34ac98304518073f
+  HADOLINT_SHA256: c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507
+  COG_SHA256: e03938ff2c4c86d71c00c0f3284dbbe95c5ca76fe34a51f33e945c23010d59bb
 
 jobs:
   # The image is pinned by digest in a file rather than written into each
@@ -36,8 +43,18 @@ jobs:
       image: ${{ steps.pin.outputs.image }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step in this workflow writes to the repository, so no job keeps the
+          # token in .git/config while gradlew, build scripts and hooks -- all code
+          # from the pushed ref -- execute.
+          persist-credentials: false
       - id: pin
         run: echo "image=$(cat .github/toolchain-image)" >> "$GITHUB_OUTPUT"
+
+      # The committed wrapper jar is code every gradlew job runs before anything
+      # else. Checked here against Gradle's published checksums, in the job every
+      # gradlew job already waits on.
+      - uses: gradle/actions/wrapper-validation@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
   test:
     needs: toolchain
@@ -56,6 +73,8 @@ jobs:
       # instead of cloning. That leaves no .git directory, which the build does not
       # need: the version comes from version.properties, not from git describe.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # Inside the container, so the JDK and Android SDK are the pinned ones. The
       # Gradle home is set explicitly because the image's own is outside the
@@ -82,9 +101,11 @@ jobs:
         with:
           # cog check walks the whole history, and a shallow clone has none of it.
           fetch-depth: 0
+          persist-credentials: false
 
       # Into RUNNER_TEMP rather than /usr/local/bin, which needs root, and out of
       # the workspace, where lefthook would then check the tools it is running.
+      # Nothing is executable, or even unpacked, until it has matched its pin.
       - name: Install the check tools
         run: |
           set -eu
@@ -98,11 +119,20 @@ jobs:
           hadolint=hadolint-linux-x86_64
           curl -fsSL -o "$bin/hadolint" \
             "${releases}hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/$hadolint"
-          chmod +x "$bin/lefthook" "$bin/hadolint"
 
           cog="cocogitto-${COG_VERSION}-x86_64-unknown-linux-musl.tar.gz"
-          curl -fsSL "${releases}cocogitto/cocogitto/releases/download/${COG_VERSION}/$cog" \
-            | tar -xz -C "$bin" --strip-components=1 --wildcards '*/cog'
+          curl -fsSL -o "$RUNNER_TEMP/$cog" \
+            "${releases}cocogitto/cocogitto/releases/download/${COG_VERSION}/$cog"
+
+          sha256sum -c <<EOF
+          $LEFTHOOK_SHA256  $bin/lefthook
+          $HADOLINT_SHA256  $bin/hadolint
+          $COG_SHA256  $RUNNER_TEMP/$cog
+          EOF
+
+          chmod +x "$bin/lefthook" "$bin/hadolint"
+          tar -xz -C "$bin" --strip-components=1 --wildcards '*/cog' \
+            < "$RUNNER_TEMP/$cog"
 
           echo "$bin" >> "$GITHUB_PATH"
 

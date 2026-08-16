@@ -7,6 +7,9 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
+    // A subproject that declared its own repository would resolve artifacts from
+    // somewhere this file never named. Refuse it rather than allow it silently.
+    repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
     repositories {
         google()
         mavenCentral()

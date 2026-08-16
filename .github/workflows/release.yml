@@ -27,6 +27,9 @@ env:
   # and the only recovery is uninstalling. See ADR-0004.
   RELEASE_CERT_SHA256: d3b0ff9214f080c6a5f677ded019451ce89a597f207cc9feaf64504d4539327a
   COG_VERSION: 7.0.0
+  # Same pin as verify.yml, for the same reason -- a release asset can be replaced
+  # upstream, and this job sits between the signed APK and its publication.
+  COG_SHA256: e03938ff2c4c86d71c00c0f3284dbbe95c5ca76fe34a51f33e945c23010d59bb
 
 jobs:
   # Same pin as verify.yml, read the same way: a job container is resolved before
@@ -39,8 +42,17 @@ jobs:
       image: ${{ steps.pin.outputs.image }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing in this workflow writes to the repository; gh release uses its
+          # own token below. No job needs credentials left in .git/config.
+          persist-credentials: false
       - id: pin
         run: echo "image=$(cat .github/toolchain-image)" >> "$GITHUB_OUTPUT"
+
+      # The committed wrapper jar runs before the tests and before the signing
+      # build. Checked against Gradle's published checksums in the job both
+      # already wait on.
+      - uses: gradle/actions/wrapper-validation@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
   # Verification first, and in its own job, so that a failing test stops the release
   # before the key is ever decoded.
@@ -57,6 +69,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Run the tests
         env:
           GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-ci
@@ -78,6 +92,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # The key exists for the length of this step and no longer. Decode, build,
       # delete -- the trap covers the failing path, where a return would not.
@@ -166,6 +182,7 @@ jobs:
         with:
           # cog reads the history to build the changelog for this tag.
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -173,16 +190,19 @@ jobs:
           path: dist
 
       # cocogitto is not in the toolchain image, for the reason ADR-0011 gives, so
-      # the notes are produced out here rather than in the build job.
+      # the notes are produced out here rather than in the build job. Nothing is
+      # unpacked until the download has matched its pin.
       - name: Install cocogitto
         run: |
           set -eu
           bin="$RUNNER_TEMP/bin"
           mkdir -p "$bin"
           cog="cocogitto-${COG_VERSION}-x86_64-unknown-linux-musl.tar.gz"
-          curl -fsSL \
-            "https://github.com/cocogitto/cocogitto/releases/download/${COG_VERSION}/$cog" \
-            | tar -xz -C "$bin" --strip-components=1 --wildcards '*/cog'
+          curl -fsSL -o "$RUNNER_TEMP/$cog" \
+            "https://github.com/cocogitto/cocogitto/releases/download/${COG_VERSION}/$cog"
+          echo "$COG_SHA256  $RUNNER_TEMP/$cog" | sha256sum -c
+          tar -xz -C "$bin" --strip-components=1 --wildcards '*/cog' \
+            < "$RUNNER_TEMP/$cog"
           echo "$bin" >> "$GITHUB_PATH"
 
       # The same text cog wrote into CHANGELOG.md for this version, so the release
