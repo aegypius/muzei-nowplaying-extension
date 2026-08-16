@@ -71,6 +71,10 @@ The checks run on the runner rather than in that image, because they need `pytho
 and `git`, which a build toolchain has no other reason to carry. See
 [ADR-0011](./docs/adr/0011-ci-on-github-actions.md).
 
+Actions are pinned by commit SHA, because a tag such as `v7` can be moved to
+different code. The trailing comment is the version that SHA was, and it is the only
+readable form: change the SHA and the comment together, or the comment lies.
+
 ## Signing
 
 Every release build is signed, and there is no unsigned fallback: an unsigned APK

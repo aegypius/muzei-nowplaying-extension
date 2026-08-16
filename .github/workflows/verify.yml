@@ -35,7 +35,7 @@ jobs:
     outputs:
       image: ${{ steps.pin.outputs.image }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: pin
         run: echo "image=$(cat .github/toolchain-image)" >> "$GITHUB_OUTPUT"
 
@@ -55,7 +55,7 @@ jobs:
       # The image has no git, so this downloads a tarball through the REST API
       # instead of cloning. That leaves no .git directory, which the build does not
       # need: the version comes from version.properties, not from git describe.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Inside the container, so the JDK and Android SDK are the pinned ones. The
       # Gradle home is set explicitly because the image's own is outside the
@@ -78,7 +78,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # cog check walks the whole history, and a shallow clone has none of it.
           fetch-depth: 0
