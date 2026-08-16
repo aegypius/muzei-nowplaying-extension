@@ -1,0 +1,121 @@
+# Tests and quality gates. No secrets, no artifacts, nothing signed: producing an
+# installable build is a separate workflow, so this one can run on anything.
+# See docs/adr/0011-ci-on-github-actions.md.
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+# A push that lands while the previous run is still going makes that run
+# uninteresting, and this repository has one developer.
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned to what the developer machine runs, so a check cannot pass in one place
+  # and fail in the other over a version.
+  LEFTHOOK_VERSION: 2.1.10
+  HADOLINT_VERSION: 2.15.1
+  COG_VERSION: 7.0.0
+
+jobs:
+  # The image is pinned by digest in a file rather than written into each
+  # workflow, so the toolchain moves in one commit. A job container cannot read
+  # that file itself -- the image is resolved before any step runs -- so it is read
+  # here and passed on.
+  toolchain:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      image: ${{ steps.pin.outputs.image }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: pin
+        run: echo "image=$(cat .github/toolchain-image)" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: toolchain
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The package is private because the repository is; pulling it needs a token.
+      packages: read
+    container:
+      image: ${{ needs.toolchain.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      # The image has no git, so this downloads a tarball through the REST API
+      # instead of cloning. That leaves no .git directory, which the build does not
+      # need: the version comes from version.properties, not from git describe.
+      - uses: actions/checkout@v5
+
+      # Inside the container, so the JDK and Android SDK are the pinned ones. The
+      # Gradle home is set explicitly because the image's own is outside the
+      # workspace and belongs to a different user than the one CI runs as.
+      - name: Run the tests
+        env:
+          GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-ci
+        run: ./gradlew --console=plain test
+
+  # On the runner rather than in the toolchain image, and deliberately so: the
+  # image has no python3 and no git, which three of these jobs need, and adding
+  # them would grow the image every build pulls for tools no build uses. The
+  # checks themselves are not duplicated -- lefthook.toml defines them once, and
+  # this runs that file.
+  checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # cog check walks the whole history, and a shallow clone has none of it.
+          fetch-depth: 0
+
+      # Into RUNNER_TEMP rather than /usr/local/bin, which needs root, and out of
+      # the workspace, where lefthook would then check the tools it is running.
+      - name: Install the check tools
+        run: |
+          set -eu
+          bin="$RUNNER_TEMP/bin"
+          mkdir -p "$bin"
+
+          curl -fsSL "https://github.com/evilmartians/lefthook/releases/download/v${LEFTHOOK_VERSION}/lefthook_${LEFTHOOK_VERSION}_Linux_x86_64" \
+            -o "$bin/lefthook"
+          curl -fsSL "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-linux-x86_64" \
+            -o "$bin/hadolint"
+          chmod +x "$bin/lefthook" "$bin/hadolint"
+
+          curl -fsSL "https://github.com/cocogitto/cocogitto/releases/download/${COG_VERSION}/cocogitto-${COG_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+            | tar -xz -C "$bin" --strip-components=1 --wildcards '*/cog'
+
+          echo "$bin" >> "$GITHUB_PATH"
+
+      # Recorded in the log, so a check that behaves differently here than locally
+      # can be compared against the versions it actually ran with. The download URLs
+      # pin the versions; this only makes them visible.
+      - name: Report the tool versions
+        run: |
+          set -eu
+          lefthook version
+          hadolint --version
+          cog --version
+
+      # --all-files, because there is no staged set here. Every job in the file is
+      # written to survive an empty file list for the same reason.
+      - name: Run the pre-commit checks
+        run: lefthook run pre-commit --all-files
+
+      # The commit messages are what cocogitto derives the version and changelog
+      # from, so a malformed one is a lost release note. The commit-msg hook
+      # catches it locally; this catches what was committed with the hook skipped.
+      - name: Check the commit messages
+        run: cog check
