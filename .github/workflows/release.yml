@@ -90,12 +90,16 @@ jobs:
       # The secrets are on this step, not on the job, so no other step has them in
       # its environment. They are read from variables rather than interpolated into
       # the command line, where ps would show them.
+      #
+      # The alias is not passed and is not a secret. It is "nowplaying", which is the
+      # build's own default, and it appears in keystore.properties.example and in the
+      # justfile. As a secret it hid nothing and GitHub masked the word everywhere it
+      # occurred, including inside the repository name in every log line.
       - name: Assemble the signed release
         env:
           GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-ci
           KEYSTORE_BASE64: ${{ secrets.NOWPLAYING_KEYSTORE_BASE64 }}
           NOWPLAYING_KEYSTORE_PASSWORD: ${{ secrets.NOWPLAYING_KEYSTORE_PASSWORD }}
-          NOWPLAYING_KEYSTORE_ALIAS: ${{ secrets.NOWPLAYING_KEYSTORE_ALIAS }}
         run: |
           set -eu
           keystore="$RUNNER_TEMP/release.jks"
