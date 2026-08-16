@@ -53,6 +53,28 @@ artwork service. Nothing else leaves the device. See [PRIVACY.md](./PRIVACY.md).
   that look wrong until you read the reasoning
 - [AGENTS.md](./AGENTS.md) — rules for coding agents working in this repository
 
+## Comparison with MuzeiMusicExtension
+
+Measured against [MuzeiMusicExtension](https://github.com/timusus/MuzeiMusicExtension)
+2.1.0, the last released version of the project this one succeeds. Both watch
+media sessions through a notification listener and look artwork up against the
+same Shuttle artwork service; everything else diverged.
+
+| Feature | Now Playing | MuzeiMusicExtension |
+| --- | :---: | :---: |
+| Wallpaper unit | the album | every song |
+| Player followed | last started | first listed |
+| When a cover is missing | artist image | nothing |
+| Wallpaper persistence | ✅ | ❌ |
+| First-run preview | ✅ | ❌ |
+| App blocklist | ✅ | ❌ |
+| Data saving mode | ✅ | ✅ |
+| Artwork validation | ✅ | ❌ |
+| Unit tests | ✅ | ❌ |
+| Installs and updates without the Play Store | ✅ | ❌ |
+| Play Store listing | ❌ | ✅ |
+| Still maintained | ✅ | ❌ |
+
 ## Credit
 
 The design comes from [MuzeiMusicExtension](https://github.com/timusus/MuzeiMusicExtension)
