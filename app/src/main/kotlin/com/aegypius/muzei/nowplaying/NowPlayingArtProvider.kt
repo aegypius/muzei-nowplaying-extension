@@ -73,7 +73,13 @@ class NowPlayingArtProvider : MuzeiArtProvider() {
      * because the fallback has nothing left to fall back to.
      */
     override fun openFile(artwork: Artwork): InputStream {
-        val bytes = super.openFile(artwork).use { it.readBytes() }
+        val bytes = super.openFile(artwork).use { it.readNBytes(MAX_ARTWORK_BYTES + 1) }
+        if (bytes.size > MAX_ARTWORK_BYTES) {
+            // The whole response is buffered in memory, so a response with no
+            // sensible bound is refused rather than trusted. IOException feeds the
+            // same recovery path as an unusable image.
+            throw IOException("artwork exceeds $MAX_ARTWORK_BYTES bytes")
+        }
 
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
@@ -91,5 +97,9 @@ class NowPlayingArtProvider : MuzeiArtProvider() {
 
     private companion object {
         const val TAG = "NowPlayingArtProvider"
+
+        // Far above any real cover art, which stays in the low megabytes even at
+        // wallpaper resolution.
+        const val MAX_ARTWORK_BYTES = 20 * 1024 * 1024
     }
 }
