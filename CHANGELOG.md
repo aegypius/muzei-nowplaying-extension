@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.1.1 - 2026-08-16
+#### Bug Fixes
+- harden the supply chain and cap the artwork buffer (#3) - (73b6867) - Nicolas LAURENT
+- add the missing final newline to the changelog - (63acfc0) - aegypius
+#### Continuous Integration
+- stop treating the key alias as a secret - (f536480) - aegypius
+#### Miscellaneous Chores
+- pin the toolchain image to a new digest - (06b10ee) - github-actions[bot]
+
+- - -
+
 ## v0.1.0 - 2026-08-16
 #### Features
 - let players be blocked, so a video cannot claim the wallpaper - (5659b45) - aegypius
